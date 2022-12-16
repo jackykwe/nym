@@ -4,18 +4,17 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { Button, Divider, Typography, TextField, Grid, CircularProgress, Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { isMixnode } from 'src/types';
-import { simulateUpdateMixnodeConfig, simulateVestingUpdateMixnodeConfig, updateMixnodeConfig } from 'src/requests';
-import { TBondedMixnode, TBondedGateway } from 'src/context/bonding';
+import { simulateUpdateGatewayConfig, updateGatewayConfig } from 'src/requests';
+import { TBondedGateway } from 'src/context/bonding';
 import { SimpleModal } from 'src/components/Modals/SimpleModal';
-import { bondedInfoParametersValidationSchema } from 'src/components/Bonding/forms/mixnodeValidationSchema';
 import { Console } from 'src/utils/console';
 import { Alert } from 'src/components/Alert';
-import { vestingUpdateMixnodeConfig } from 'src/requests/vesting';
 import { ConfirmTx } from 'src/components/ConfirmTX';
 import { useGetFee } from 'src/hooks/useGetFee';
 import { LoadingModal } from 'src/components/Modals/LoadingModal';
+import { updateGatewayValidationSchema } from 'src/components/Bonding/forms/gatewayValidationSchema';
 
-export const InfoSettings = ({ bondedNode }: { bondedNode: TBondedMixnode | TBondedGateway }) => {
+export const GeneralGatewaySettings = ({ bondedNode }: { bondedNode: TBondedGateway }) => {
   const [openConfirmationModal, setOpenConfirmationModal] = useState<boolean>(false);
   const { getFee, fee, resetFeeState } = useGetFee();
 
@@ -26,40 +25,34 @@ export const InfoSettings = ({ bondedNode }: { bondedNode: TBondedMixnode | TBon
     handleSubmit,
     formState: { errors, isSubmitting, isDirty, isValid },
   } = useForm({
-    resolver: yupResolver(bondedInfoParametersValidationSchema),
+    resolver: yupResolver(updateGatewayValidationSchema),
     mode: 'onChange',
-    defaultValues: isMixnode(bondedNode) ? bondedNode : {},
+    defaultValues: {
+      host: bondedNode.host,
+      mixPort: bondedNode.mixPort,
+      httpApiPort: bondedNode.httpApiPort,
+    },
   });
 
-  const onSubmit = async (data: {
-    host?: string;
-    version?: string;
-    mixPort?: number;
-    verlocPort?: number;
-    httpApiPort?: number;
-  }) => {
+  const onSubmit = async (data: { mixPort?: number; httpApiPort?: number; host?: string }) => {
     resetFeeState();
-    const { host, version, mixPort, verlocPort, httpApiPort } = data;
-    if (host && version && mixPort && verlocPort && httpApiPort) {
-      const MixNodeConfigParams = {
+    const { host, mixPort, httpApiPort } = data;
+    try {
+      const GatewayConfigParams = {
         host,
         mix_port: mixPort,
-        verloc_port: verlocPort,
         http_api_port: httpApiPort,
-        version,
       };
-      try {
-        if (bondedNode.proxy) {
-          await vestingUpdateMixnodeConfig(MixNodeConfigParams);
-        } else {
-          await updateMixnodeConfig(MixNodeConfigParams);
-        }
-        setOpenConfirmationModal(true);
-      } catch (error) {
-        Console.error(error);
-      }
+
+      await updateGatewayConfig(GatewayConfigParams);
+
+      setOpenConfirmationModal(true);
+    } catch (error) {
+      Console.error(error);
     }
   };
+
+  console.log({ isSubmitting, isDirty, isValid, errors });
 
   return (
     <Grid container xs item>
@@ -102,22 +95,12 @@ export const InfoSettings = ({ bondedNode }: { bondedNode: TBondedMixnode | TBon
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item width={1}>
-              <TextField
-                {...register('verlocPort')}
-                name="verlocPort"
-                label="Verloc Port"
-                fullWidth
-                error={!!errors.verlocPort}
-                helperText={errors.verlocPort?.message}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
+
             <Grid item width={1}>
               <TextField
                 {...register('httpApiPort')}
                 name="httpApiPort"
-                label="HTTP port"
+                label="Client WS API Port"
                 fullWidth
                 error={!!errors.httpApiPort}
                 helperText={errors.httpApiPort?.message}
@@ -126,7 +109,7 @@ export const InfoSettings = ({ bondedNode }: { bondedNode: TBondedMixnode | TBon
             </Grid>
           </Grid>
         </Grid>
-        <Divider flexItem />
+
         <Grid item container direction="row" alignItems="left" justifyContent="space-between" padding={3}>
           <Grid item>
             <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
@@ -138,31 +121,10 @@ export const InfoSettings = ({ bondedNode }: { bondedNode: TBondedMixnode | TBon
               <TextField
                 {...register('host')}
                 name="host"
-                label="host"
+                label="Host"
                 fullWidth
                 error={!!errors.host}
                 helperText={errors.host?.message}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-          </Grid>
-        </Grid>
-        <Divider flexItem />
-        <Grid item container direction="row" alignItems="left" justifyContent="space-between" padding={3}>
-          <Grid item>
-            <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
-              Version
-            </Typography>
-          </Grid>
-          <Grid spacing={3} item container alignItems="center" xs={12} md={6}>
-            <Grid item width={1}>
-              <TextField
-                {...register('version')}
-                name="version"
-                label="Version"
-                fullWidth
-                error={!!errors.version}
-                helperText={errors.version?.message}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -175,12 +137,10 @@ export const InfoSettings = ({ bondedNode }: { bondedNode: TBondedMixnode | TBon
             variant="contained"
             disabled={isSubmitting || !isDirty || !isValid}
             onClick={handleSubmit((data) =>
-              getFee(bondedNode.proxy ? simulateVestingUpdateMixnodeConfig : simulateUpdateMixnodeConfig, {
+              getFee(simulateUpdateGatewayConfig, {
                 host: data.host,
                 mix_port: data.mixPort,
-                verloc_port: data.verlocPort,
                 http_api_port: data.httpApiPort,
-                version: data.version,
               }),
             )}
             sx={{ m: 3 }}
@@ -193,7 +153,7 @@ export const InfoSettings = ({ bondedNode }: { bondedNode: TBondedMixnode | TBon
         open={openConfirmationModal}
         header="Your changes are submitted to the blockchain"
         subHeader="Remember to change the values 
-        on your node’s config file too."
+        on your gateways’s config file too."
         okLabel="close"
         hideCloseIcon
         displayInfoIcon
