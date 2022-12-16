@@ -144,21 +144,19 @@ export const BondedMixnode = ({
           </Stack>
         }
         Action={
-          isMixnode(mixnode) && (
-            <Tooltip title={mixnode.isUnbonding ? 'You have a pending unbond event. Node settings are disabled.' : ''}>
-              <Box>
-                <Button
-                  variant="text"
-                  color="secondary"
-                  onClick={() => navigate('/bonding/node-settings')}
-                  startIcon={<NodeIcon />}
-                  disabled={mixnode.isUnbonding}
-                >
-                  Node Settings
-                </Button>
-              </Box>
-            </Tooltip>
-          )
+          <Tooltip title={mixnode.isUnbonding ? 'You have a pending unbond event. Node settings are disabled.' : ''}>
+            <Box>
+              <Button
+                variant="text"
+                color="secondary"
+                onClick={() => navigate('/bonding/node-settings')}
+                startIcon={<NodeIcon />}
+                disabled={mixnode.isUnbonding}
+              >
+                Node Settings
+              </Button>
+            </Box>
+          </Tooltip>
         }
       >
         <NodeTable headers={headers} cells={cells} />
