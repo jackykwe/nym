@@ -18,6 +18,9 @@ export const simulateUpdateMixnodeCostParams = async (newCosts: MixNodeCostParam
 export const simulateUpdateMixnodeConfig = async (update: MixNodeConfigUpdate) =>
   invokeWrapper<FeeDetails>('simulate_update_mixnode_config', { update });
 
+export const simulateUpdateGatewayConfig = async (update: any) =>
+  invokeWrapper<FeeDetails>('simulate_update_gateway_config', { update });
+
 export const simulateDelegateToMixnode = async (args: { mixId: number; amount: DecCoin }) =>
   invokeWrapper<FeeDetails>('simulate_delegate_to_mixnode', args);
 
@@ -64,8 +67,7 @@ export const simulateClaimOperatorReward = async () => invokeWrapper<FeeDetails>
 export const simulateVestingClaimOperatorReward = async () =>
   invokeWrapper<FeeDetails>('simulate_vesting_claim_operator_reward');
 
-export const simulateBondMore = async (args: any) =>
-  invokeWrapper<FeeDetails>('simulate_pledge_more', args);
+export const simulateBondMore = async (args: any) => invokeWrapper<FeeDetails>('simulate_pledge_more', args);
 
 export const simulateVestingBondMore = async (args: any) =>
   invokeWrapper<FeeDetails>('simulate_vesting_pledge_more', args);
