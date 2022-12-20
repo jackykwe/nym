@@ -15,7 +15,7 @@ import { AppContext, urls } from 'src/context/main';
 
 import { NodeGeneralSettings } from './settings-pages/general-settings';
 import { NodeUnbondPage } from './settings-pages/NodeUnbondPage';
-import { navItems } from './node-settings.constant';
+import { makeNavItems } from './node-settings.constant';
 import { isMixnode } from 'src/types';
 import { ApyPlayground } from './apy-playground';
 
@@ -84,7 +84,7 @@ export const NodeSettings = () => {
             </Box>
             <Box sx={{ width: '100%' }}>
               <Tabs
-                tabs={navItems}
+                tabs={makeNavItems(isMixnode(bondedNode))}
                 selectedTab={value}
                 onChange={handleChange}
                 tabSx={{
