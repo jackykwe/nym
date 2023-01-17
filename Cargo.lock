@@ -691,7 +691,6 @@ dependencies = [
  "async-trait",
  "client-connections",
  "config",
- "crypto",
  "dashmap 5.4.0",
  "dirs",
  "futures",
@@ -701,6 +700,7 @@ dependencies = [
  "humantime-serde",
  "log",
  "nonexhaustive-delayqueue",
+ "nym-crypto",
  "nymsphinx",
  "pemstore",
  "rand 0.7.3",
@@ -1024,8 +1024,8 @@ dependencies = [
  "config",
  "credential-storage",
  "credentials",
- "crypto",
  "network-defaults",
+ "nym-crypto",
  "pemstore",
  "rand 0.7.3",
  "serde",
@@ -1053,8 +1053,8 @@ dependencies = [
  "bls12_381 0.5.0",
  "coconut-interface",
  "cosmrs",
- "crypto",
  "nym-api-requests",
+ "nym-crypto",
  "rand 0.7.3",
  "thiserror",
  "validator-client",
@@ -1217,31 +1217,6 @@ name = "crunchy"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
-
-[[package]]
-name = "crypto"
-version = "0.1.0"
-dependencies = [
- "aes 0.8.1",
- "blake3",
- "bs58",
- "cipher 0.4.3",
- "ctr 0.9.1",
- "digest 0.10.3",
- "ed25519-dalek",
- "generic-array 0.14.5",
- "hkdf 0.12.3",
- "hmac 0.12.1",
- "nymsphinx-types",
- "pemstore",
- "rand 0.7.3",
- "rand_chacha 0.2.2",
- "serde",
- "serde_bytes",
- "subtle-encoding",
- "thiserror",
- "x25519-dalek",
-]
 
 [[package]]
 name = "crypto-bigint"
@@ -2063,12 +2038,12 @@ dependencies = [
  "coconut-interface",
  "credential-storage",
  "credentials",
- "crypto",
  "futures",
  "gateway-requests",
  "getrandom 0.2.6",
  "log",
  "network-defaults",
+ "nym-crypto",
  "nymsphinx",
  "pemstore",
  "rand 0.7.3",
@@ -2094,9 +2069,9 @@ dependencies = [
  "bs58",
  "coconut-interface",
  "credentials",
- "crypto",
  "futures",
  "log",
+ "nym-crypto",
  "nymsphinx",
  "pemstore",
  "rand 0.7.3",
@@ -3032,11 +3007,11 @@ name = "mixnode-common"
 version = "0.1.0"
 dependencies = [
  "bytes",
- "crypto",
  "futures",
  "humantime-serde",
  "log",
  "network-defaults",
+ "nym-crypto",
  "nymsphinx-acknowledgements",
  "nymsphinx-addressing",
  "nymsphinx-forwarding",
@@ -3221,7 +3196,6 @@ dependencies = [
  "cosmwasm-std",
  "credential-storage",
  "credentials",
- "crypto",
  "cw-utils",
  "cw3",
  "dirs",
@@ -3238,6 +3212,7 @@ dependencies = [
  "multisig-contract-common",
  "nym-api-requests",
  "nym-contracts-common",
+ "nym-crypto",
  "nym-mixnet-contract-common",
  "nym-vesting-contract-common",
  "nymcoconut",
@@ -3370,7 +3345,6 @@ dependencies = [
  "config",
  "credential-storage",
  "credentials",
- "crypto",
  "dirs",
  "futures",
  "gateway-client",
@@ -3379,6 +3353,7 @@ dependencies = [
  "log",
  "logging",
  "network-defaults",
+ "nym-crypto",
  "nymsphinx",
  "pemstore",
  "pretty_env_logger",
@@ -3411,6 +3386,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "nym-crypto"
+version = "0.1.0"
+dependencies = [
+ "aes 0.8.1",
+ "blake3",
+ "bs58",
+ "cipher 0.4.3",
+ "ctr 0.9.1",
+ "digest 0.10.3",
+ "ed25519-dalek",
+ "generic-array 0.14.5",
+ "hkdf 0.12.3",
+ "hmac 0.12.1",
+ "nymsphinx-types",
+ "pemstore",
+ "rand 0.7.3",
+ "rand_chacha 0.2.2",
+ "serde",
+ "serde_bytes",
+ "subtle-encoding",
+ "thiserror",
+ "x25519-dalek",
+]
+
+[[package]]
 name = "nym-gateway"
 version = "1.1.5"
 dependencies = [
@@ -3426,7 +3426,6 @@ dependencies = [
  "completions",
  "config",
  "credentials",
- "crypto",
  "dashmap 4.0.2",
  "dirs",
  "dotenv",
@@ -3440,6 +3439,7 @@ dependencies = [
  "mixnode-common",
  "network-defaults",
  "nym-api-requests",
+ "nym-crypto",
  "nym-types",
  "nymsphinx",
  "once_cell",
@@ -3493,7 +3493,6 @@ dependencies = [
  "colored",
  "completions",
  "config",
- "crypto",
  "cupid",
  "dirs",
  "dotenv",
@@ -3505,6 +3504,7 @@ dependencies = [
  "mixnet-client",
  "mixnode-common",
  "nonexhaustive-delayqueue",
+ "nym-crypto",
  "nym-types",
  "nymsphinx",
  "nymsphinx-params",
@@ -3596,13 +3596,13 @@ version = "0.1.0"
 dependencies = [
  "client-connections",
  "client-core",
- "crypto",
  "futures",
  "gateway-client",
  "gateway-requests",
  "log",
  "logging",
  "network-defaults",
+ "nym-crypto",
  "nymsphinx",
  "pretty_env_logger",
  "rand 0.7.3",
@@ -3627,7 +3627,6 @@ dependencies = [
  "config",
  "credential-storage",
  "credentials",
- "crypto",
  "dirs",
  "futures",
  "gateway-client",
@@ -3636,6 +3635,7 @@ dependencies = [
  "log",
  "logging",
  "network-defaults",
+ "nym-crypto",
  "nymsphinx",
  "ordered-buffer",
  "pemstore",
@@ -3757,7 +3757,7 @@ dependencies = [
 name = "nymsphinx"
 version = "0.1.0"
 dependencies = [
- "crypto",
+ "nym-crypto",
  "nym-mixnet-contract-common",
  "nymsphinx-acknowledgements",
  "nymsphinx-addressing",
@@ -3779,7 +3779,7 @@ dependencies = [
 name = "nymsphinx-acknowledgements"
 version = "0.1.0"
 dependencies = [
- "crypto",
+ "nym-crypto",
  "nymsphinx-addressing",
  "nymsphinx-params",
  "nymsphinx-types",
@@ -3793,7 +3793,7 @@ dependencies = [
 name = "nymsphinx-addressing"
 version = "0.1.0"
 dependencies = [
- "crypto",
+ "nym-crypto",
  "nymsphinx-types",
  "rand 0.7.3",
  "serde",
@@ -3805,7 +3805,7 @@ name = "nymsphinx-anonymous-replies"
 version = "0.1.0"
 dependencies = [
  "bs58",
- "crypto",
+ "nym-crypto",
  "nymsphinx-addressing",
  "nymsphinx-params",
  "nymsphinx-types",
@@ -3832,7 +3832,7 @@ dependencies = [
 name = "nymsphinx-cover"
 version = "0.1.0"
 dependencies = [
- "crypto",
+ "nym-crypto",
  "nymsphinx-acknowledgements",
  "nymsphinx-addressing",
  "nymsphinx-chunking",
@@ -3868,7 +3868,7 @@ dependencies = [
 name = "nymsphinx-params"
 version = "0.1.0"
 dependencies = [
- "crypto",
+ "nym-crypto",
  "nymsphinx-types",
  "thiserror",
 ]
@@ -6329,8 +6329,8 @@ name = "topology"
 version = "0.1.0"
 dependencies = [
  "bs58",
- "crypto",
  "log",
+ "nym-crypto",
  "nym-mixnet-contract-common",
  "nymsphinx-addressing",
  "nymsphinx-types",
