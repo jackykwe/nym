@@ -14,7 +14,7 @@ validator-client = { path = "../../common/client-libs/validator-client", feature
     "nyxd-client", "generate-ts"
 ] }
 nym-api-requests = { path = "../../nym-api/nym-api-requests", features = ["generate-ts"] }
-mixnet-contract-common = { path = "../../common/cosmwasm-smart-contracts/mixnet-contract", features = [ "generate-ts" ] }
-vesting-contract-common = { path = "../../common/cosmwasm-smart-contracts/vesting-contract", features = [ "generate-ts" ] }
+mixnet-contract-common = { path = "../../common/cosmwasm-smart-contracts/mixnet-contract", features = [ "generate-ts" ], package = "nym-mixnet-contract-common"}
+vesting-contract-common = { path = "../../common/cosmwasm-smart-contracts/vesting-contract", features = [ "generate-ts" ], package = "nym-vesting-contract-common" }
 nym-types = { path = "../../common/types", features = [ "generate-ts" ] }
 nym-wallet-types = { path = "../../nym-wallet/nym-wallet-types", features = [ "generate-ts" ] }

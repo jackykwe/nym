@@ -79,9 +79,9 @@ cw3 = { version = "0.13.4", optional = true }
 dkg = { path = "../common/crypto/dkg", optional = true }
 gateway-client = { path = "../common/client-libs/gateway-client" }
 inclusion-probability = { path = "../common/inclusion-probability" }
-mixnet-contract-common = { path = "../common/cosmwasm-smart-contracts/mixnet-contract" }
-vesting-contract-common = { path = "../common/cosmwasm-smart-contracts/vesting-contract" }
-contracts-common = { path = "../common/cosmwasm-smart-contracts/contracts-common", features = ["coconut"] }
+mixnet-contract-common = { path = "../common/cosmwasm-smart-contracts/mixnet-contract", package = "nym-mixnet-contract-common" }
+vesting-contract-common = { path = "../common/cosmwasm-smart-contracts/vesting-contract", package = "nym-vesting-contract-common" }
+contracts-common = { path = "../common/cosmwasm-smart-contracts/contracts-common", features = ["coconut"], package = "nym-contracts-common" }
 multisig-contract-common = { path = "../common/cosmwasm-smart-contracts/multisig-contract" }
 nymcoconut = { path = "../common/nymcoconut", optional = true }
 nymsphinx = { path = "../common/nymsphinx" }

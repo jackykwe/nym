@@ -16,13 +16,13 @@ cosmrs = { git = "https://github.com/neacsu/cosmos-rust", branch = "neacsu/feegr
 
 config = { path = "../../common/config" }
 network-defaults = { path = "../../common/network-defaults" }
-mixnet-contract-common = { path = "../../common/cosmwasm-smart-contracts/mixnet-contract" }
+mixnet-contract-common = { path = "../../common/cosmwasm-smart-contracts/mixnet-contract", package = "nym-mixnet-contract-common" }
 validator-client = { path = "../../common/client-libs/validator-client", features = [
     "nyxd-client",
 ] }
-vesting-contract-common = { path = "../../common/cosmwasm-smart-contracts/vesting-contract" }
+vesting-contract-common = { path = "../../common/cosmwasm-smart-contracts/vesting-contract", package = "nym-vesting-contract-common" }
 # Used for Type conversion, can be extracted but its a lot of work
-vesting-contract = { path = "../../contracts/vesting" }
+vesting-contract = { path = "../../contracts/vesting", package = "nym-vesting-contract" }
 
 nym-types = { path = "../../common/types" }
 

@@ -25,12 +25,12 @@ cosmrs = { git = "https://github.com/neacsu/cosmos-rust", branch = "neacsu/feegr
 validator-client = { path = "../../common/client-libs/validator-client", features = [
     "nyxd-client",
 ] }
-mixnet-contract-common = { path = "../../common/cosmwasm-smart-contracts/mixnet-contract" }
-vesting-contract-common = { path = "../../common/cosmwasm-smart-contracts/vesting-contract" }
+mixnet-contract-common = { path = "../../common/cosmwasm-smart-contracts/mixnet-contract", package = "nym-mixnet-contract-common" }
+vesting-contract-common = { path = "../../common/cosmwasm-smart-contracts/vesting-contract", package = "nym-vesting-contract-common" }
 config = { path = "../../common/config" }
 coconut-interface = { path = "../../common/coconut-interface" }
 # Used for Type conversion, can be extracted but its a lot of work
-vesting-contract = { path = "../../contracts/vesting" }
+vesting-contract = { path = "../../contracts/vesting", package = "nym-vesting-contract" }
 
 [dev-dependencies]
 tempfile = "3.3.0"

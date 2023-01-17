@@ -12,12 +12,12 @@ base64 = "0.13"
 colored = "2.0"
 
 coconut-dkg-common = { path = "../../cosmwasm-smart-contracts/coconut-dkg" }
-contracts-common = { path = "../../cosmwasm-smart-contracts/contracts-common" }
-mixnet-contract-common = { path= "../../cosmwasm-smart-contracts/mixnet-contract" }
-vesting-contract-common = { path= "../../cosmwasm-smart-contracts/vesting-contract" }
+contracts-common = { path = "../../cosmwasm-smart-contracts/contracts-common", package = "nym-contracts-common" }
+mixnet-contract-common = { path= "../../cosmwasm-smart-contracts/mixnet-contract", package = "nym-mixnet-contract-common" }
+vesting-contract-common = { path= "../../cosmwasm-smart-contracts/vesting-contract", package = "nym-vesting-contract-common" }
 coconut-bandwidth-contract-common = { path= "../../cosmwasm-smart-contracts/coconut-bandwidth-contract" }
 multisig-contract-common = { path = "../../cosmwasm-smart-contracts/multisig-contract" }
-vesting-contract = { path = "../../../contracts/vesting" }
+vesting-contract = { path = "../../../contracts/vesting", package = "nym-vesting-contract" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.11", features = ["json"] }
