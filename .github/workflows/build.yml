@@ -29,14 +29,6 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - name: Install sccache
-        uses: actions-rs/cargo@v1
-        env:
-          RUSTC_WRAPPER: ""
-        with:
-          command: install
-          args: sccache
-
       - name: Cache cargo registry
         uses: actions/cache@v3
         continue-on-error: false
@@ -52,10 +44,18 @@ jobs:
         uses: actions/cache@v3
         continue-on-error: false
         with:
-          path: ~/.cargo/bin/sccache
+          path: ~/.cache/sccache
           key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
                         ${{ runner.os }}-sccache-
+
+      - name: Install sccache
+        uses: actions-rs/cargo@v1
+        env:
+          RUSTC_WRAPPER: ""
+        with:
+          command: install
+          args: sccache
 
       - name: Start sccache server
         run: sccache --start-server
