@@ -24,7 +24,7 @@ crypto = { path = "../../crypto", package = "nym-crypto" }
 gateway-requests = { path = "../../../gateway/gateway-requests" }
 network-defaults = { path = "../../network-defaults" }
 nymsphinx = { path = "../../nymsphinx" }
-pemstore = { path = "../../pemstore" }
+pemstore = { path = "../../pemstore", package = "nym-pemstore" }
 validator-client = { path = "../validator-client", optional = true }
 task = { path = "../../task" }
 serde = { version = "1.0", features = ["derive"]}

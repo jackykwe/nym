@@ -42,7 +42,7 @@ gateway-requests = { path = "../../gateway/gateway-requests" }
 network-defaults = { path = "../../common/network-defaults" }
 nymsphinx = { path = "../../common/nymsphinx" }
 ordered-buffer = { path = "../../common/socks5/ordered-buffer" }
-pemstore = { path = "../../common/pemstore" }
+pemstore = { path = "../../common/pemstore", package = "nym-pemstore" }
 proxy-helpers = { path = "../../common/socks5/proxy-helpers" }
 socks5-requests = { path = "../../common/socks5/requests" }
 task = { path = "../../common/task" }

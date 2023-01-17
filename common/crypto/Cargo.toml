@@ -26,7 +26,7 @@ thiserror = "1.0.37"
 
 # internal
 nymsphinx-types = { path = "../nymsphinx/types" }
-pemstore = { path = "../../common/pemstore" }
+pemstore = { path = "../../common/pemstore", package = "nym-pemstore" }
 
 [dev-dependencies]
 rand_chacha = "0.2"

@@ -85,7 +85,7 @@ contracts-common = { path = "../common/cosmwasm-smart-contracts/contracts-common
 multisig-contract-common = { path = "../common/cosmwasm-smart-contracts/multisig-contract" }
 nymcoconut = { path = "../common/nymcoconut", optional = true }
 nymsphinx = { path = "../common/nymsphinx" }
-pemstore = { path = "../common/pemstore", optional = true }
+pemstore = { path = "../common/pemstore", optional = true, package = "nym-pemstore" }
 task = { path = "../common/task" }
 topology = { path = "../common/topology" }
 nym-api-requests = { path = "nym-api-requests" }
