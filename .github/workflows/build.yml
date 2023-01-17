@@ -35,6 +35,11 @@ jobs:
           command: fmt
           args: --all -- --check
 
+      - name: Check if we have rustc
+        run: >
+          rustc -vV
+
+
       - name: Build all binaries
         uses: actions-rs/cargo@v1
         with:
