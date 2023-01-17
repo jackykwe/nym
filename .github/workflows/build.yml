@@ -29,16 +29,17 @@ jobs:
           override: true
           components: rustfmt, clippy
 
+      - name: Install sccache
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: sccache
+
       - name: Check formatting
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
-
-      - name: Check if we have rustc
-        run: >
-          rustc -vV
-
 
       - name: Build all binaries
         uses: actions-rs/cargo@v1
