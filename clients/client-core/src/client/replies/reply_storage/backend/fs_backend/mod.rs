@@ -49,6 +49,10 @@ impl StorageManagerEnum {
             }
         }
     }
+
+    fn is_active(&self) -> bool {
+        matches!(self, StorageManagerEnum::Storage(_))
+    }
 }
 
 #[derive(Debug)]
@@ -357,6 +361,10 @@ impl Backend {
 #[async_trait]
 impl ReplyStorageBackend for Backend {
     type StorageError = error::StorageError;
+
+    fn is_active(&self) -> bool {
+        self.manager.is_active()
+    }
 
     async fn start_storage_session(&self) -> Result<(), Self::StorageError> {
         self.start_client_use().await

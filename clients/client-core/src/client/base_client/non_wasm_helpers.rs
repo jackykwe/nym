@@ -44,7 +44,7 @@ async fn setup_fresh_backend<P: AsRef<Path>>(
 }
 
 fn setup_inactive_backend(debug_config: &DebugConfig) -> fs_backend::Backend {
-    info!("creating fresh surb database");
+    info!("creating inactive surb database");
     fs_backend::Backend::new_inactive(
         debug_config.minimum_reply_surb_storage_threshold,
         debug_config.maximum_reply_surb_storage_threshold,

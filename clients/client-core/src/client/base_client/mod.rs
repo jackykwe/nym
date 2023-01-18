@@ -383,6 +383,7 @@ where
         <B as ReplyStorageBackend>::StorageError: Sync + Send,
     {
         if backend.is_active() {
+            log::trace!("Setup persistent reply storage");
             let persistent_storage = PersistentReplyStorage::new(backend);
             let mem_store = persistent_storage
                 .load_state_from_backend()
@@ -400,6 +401,7 @@ where
 
             Ok(mem_store)
         } else {
+            log::trace!("Setup inactive reply storage");
             Ok(backend
                 .get_inactive_storage()
                 .map_err(|err| ClientCoreError::SurbStorageError {
