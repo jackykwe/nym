@@ -144,6 +144,7 @@ pub struct BaseClientBuilder<'a, B> {
 impl<'a, B> BaseClientBuilder<'a, B>
 where
     B: ReplyStorageBackend + Send + Sync + 'static,
+    //ClientCoreError: From<<B as ReplyStorageBackend>::StorageError>,
 {
     pub fn new_from_base_config<T>(
         base_config: &'a Config<T>,
@@ -381,22 +382,32 @@ where
     where
         <B as ReplyStorageBackend>::StorageError: Sync + Send,
     {
-        let persistent_storage = PersistentReplyStorage::new(backend);
-        let mem_store = persistent_storage
-            .load_state_from_backend()
-            .await
-            .map_err(|err| ClientCoreError::SurbStorageError {
-                source: Box::new(err),
-            })?;
-
-        let store_clone = mem_store.clone();
-        spawn_future(async move {
-            persistent_storage
-                .flush_on_shutdown(store_clone, shutdown)
+        if backend.is_active() {
+            let persistent_storage = PersistentReplyStorage::new(backend);
+            let mem_store = persistent_storage
+                .load_state_from_backend()
                 .await
-        });
+                .map_err(|err| ClientCoreError::SurbStorageError {
+                    source: Box::new(err),
+                })?;
 
-        Ok(mem_store)
+            let store_clone = mem_store.clone();
+            spawn_future(async move {
+                persistent_storage
+                    .flush_on_shutdown(store_clone, shutdown)
+                    .await
+            });
+
+            Ok(mem_store)
+        } else {
+            //Ok(backend.get_inactive_storage().await?)
+            Ok(backend.get_inactive_storage().unwrap())
+            //let b = non_wasm_helpers::setup_empty_reply_surb_backend(debug_config);
+            //let b = reply_storage::Empty {
+            //    min_surb_threshold: debug_config.minimum_reply_surb_storage_threshold,
+            //    max_surb_threshold: debug_config.maximum_reply_surb_storage_threshold,
+            //};
+        }
     }
 
     pub async fn start_base(mut self) -> Result<BaseClient, ClientCoreError>

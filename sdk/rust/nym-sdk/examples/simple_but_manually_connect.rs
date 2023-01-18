@@ -1,3 +1,4 @@
+use client_core::{client::base_client::non_wasm_helpers, config::DebugConfig};
 use nym_sdk::mixnet;
 
 #[tokio::main]
@@ -6,7 +7,10 @@ async fn main() {
 
     // Create client builder, including ephemeral keys. The builder can be usable in the context
     // where you don't want to connect just yet
-    let client = mixnet::ClientBuilder::new(None, None).unwrap();
+    let client = mixnet::MixnetClientBuilder::new(None, None).await.unwrap();
+    //let debug_config = DebugConfig::default();
+    //let empty_storage = non_wasm_helpers::setup_empty_reply_surb_backend(&debug_config);
+    //let client = mixnet::MixnetClientBuilder::new_with_custom_storage(None, None, empty_storage).unwrap();
 
     // Now we connect to the mixnet, using ephemeral keys already created
     let mut client = client.connect_to_mixnet().await.unwrap();
