@@ -400,13 +400,11 @@ where
 
             Ok(mem_store)
         } else {
-            //Ok(backend.get_inactive_storage().await?)
-            Ok(backend.get_inactive_storage().unwrap())
-            //let b = non_wasm_helpers::setup_empty_reply_surb_backend(debug_config);
-            //let b = reply_storage::Empty {
-            //    min_surb_threshold: debug_config.minimum_reply_surb_storage_threshold,
-            //    max_surb_threshold: debug_config.maximum_reply_surb_storage_threshold,
-            //};
+            Ok(backend
+                .get_inactive_storage()
+                .map_err(|err| ClientCoreError::SurbStorageError {
+                    source: Box::new(err),
+                })?)
         }
     }
 
