@@ -32,6 +32,8 @@ tap = "1.0.1"
 tokio = { version = "1.21.2", features = ["rt-multi-thread", "net", "signal"] } # async runtime
 tokio-tungstenite = "0.14" # websocket
 
+nix = {version = "0.26.2", default-features = false, features = ["time"]}
+
 ## internal
 client-core = { path = "../client-core", features = ["fs-surb-storage"] }
 client-connections = { path = "../../common/client-connections" }

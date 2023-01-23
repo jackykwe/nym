@@ -10,6 +10,7 @@ use log::*;
 use nymsphinx::acknowledgements::AckKey;
 use nymsphinx::addressing::clients::Recipient;
 use nymsphinx::cover::generate_loop_cover_packet;
+use nymsphinx::forwarding::packet::LogMixPacketType;
 use nymsphinx::params::PacketSize;
 use nymsphinx::utils::sample_poisson_duration;
 use rand::{rngs::OsRng, CryptoRng, Rng};
@@ -180,6 +181,7 @@ impl LoopCoverTrafficStream<OsRng> {
             self.average_ack_delay,
             self.average_packet_delay,
             self.packet_size,
+            Some(LogMixPacketType::LoopCover),
         )
         .expect("Somehow failed to generate a loop cover message with a valid topology");
 

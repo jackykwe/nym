@@ -253,7 +253,13 @@ impl ReceivedMessagesBuffer {
         let mut reconstructed = Vec::new();
         for msg in msgs {
             match msg.content {
-                ReplyMessageContent::Data { message } => reconstructed.push(message.into()),
+                ReplyMessageContent::Data { message } => reconstructed.push(
+                    PlainMessage {
+                        inner: message,
+                        log_message_id: None,
+                    }
+                    .into(),
+                ),
                 ReplyMessageContent::SurbRequest { recipient, amount } => {
                     debug!("received request for {amount} additional reply SURBs from {recipient}");
                     self.reply_controller_sender

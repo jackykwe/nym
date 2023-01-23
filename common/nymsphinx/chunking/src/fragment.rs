@@ -112,6 +112,7 @@ impl FragmentIdentifier {
 pub struct Fragment {
     header: FragmentHeader,
     payload: Vec<u8>,
+    pub log_message_id: Option<u64>,
 }
 
 // manual implementation to hide detailed payload that we don't care about
@@ -136,6 +137,7 @@ impl Fragment {
         previous_fragments_set_id: Option<i32>,
         next_fragments_set_id: Option<i32>,
         max_plaintext_size: usize,
+        log_message_id: Option<u64>,
     ) -> Result<Self, ChunkingError> {
         let header = FragmentHeader::try_new(
             id,
@@ -188,6 +190,7 @@ impl Fragment {
         Ok(Fragment {
             header,
             payload: payload.to_vec(),
+            log_message_id,
         })
     }
 
@@ -252,6 +255,7 @@ impl Fragment {
         Ok(Fragment {
             header,
             payload: b[n..].to_vec(),
+            log_message_id: None, // TODO: handle logging incoming packets
         })
     }
 }

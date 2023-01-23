@@ -51,7 +51,7 @@ impl ReconstructedMessage {
 impl From<PlainMessage> for ReconstructedMessage {
     fn from(message: PlainMessage) -> Self {
         ReconstructedMessage {
-            message,
+            message: message.inner,
             sender_tag: None,
         }
     }

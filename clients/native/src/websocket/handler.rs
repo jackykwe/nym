@@ -13,6 +13,7 @@ use client_core::client::{
 use futures::channel::mpsc;
 use futures::{SinkExt, StreamExt};
 use log::*;
+use nix::sys::time::TimeValLike;
 use nymsphinx::addressing::clients::Recipient;
 use nymsphinx::anonymous_replies::requests::AnonymousSenderTag;
 use nymsphinx::receiver::ReconstructedMessage;
@@ -96,6 +97,7 @@ impl Handler {
         recipient: Recipient,
         message: Vec<u8>,
         connection_id: Option<u64>,
+        log_message_id: Option<u64>,
     ) -> Option<ServerResponse> {
         info!(
             "Attempting to send {:.2} kiB message to {recipient} on connection_id {connection_id:?}",
@@ -107,8 +109,16 @@ impl Handler {
             TransmissionLane::ConnectionId(id)
         });
 
+        let mut message_tagged = log_message_id
+            .unwrap() // existence check is handled earlier
+            .to_string()
+            .as_bytes()
+            .to_vec();
+        message_tagged.extend("|".as_bytes().iter());
+        message_tagged.extend(message);
+
         // the ack control is now responsible for chunking, etc.
-        let input_msg = InputMessage::new_regular(recipient, message, lane);
+        let input_msg = InputMessage::new_regular(recipient, message_tagged, lane);
         self.msg_input
             .send(input_msg)
             .await
@@ -255,13 +265,20 @@ impl Handler {
         })
     }
 
-    async fn handle_request(&mut self, request: ClientRequest) -> Option<ServerResponse> {
+    async fn handle_request(
+        &mut self,
+        request: ClientRequest,
+        log_message_id: Option<u64>,
+    ) -> Option<ServerResponse> {
         match request {
             ClientRequest::Send {
                 recipient,
                 message,
                 connection_id,
-            } => self.handle_send(recipient, message, connection_id).await,
+            } => {
+                self.handle_send(recipient, message, connection_id, log_message_id)
+                    .await
+            }
 
             ClientRequest::SendAnonymous {
                 recipient,
@@ -285,16 +302,32 @@ impl Handler {
         }
     }
 
-    async fn handle_text_message(&mut self, msg: String) -> Option<WsMessage> {
+    async fn handle_text_message(&mut self, msg: String, log_recv_nanos: i64) -> Option<WsMessage> {
         debug!("Handling text message request");
         trace!("Content: {:?}", msg);
+
+        let split_index = msg.find('{').unwrap();
+
+        let log_message_id = msg
+            .chars()
+            .take(split_index)
+            .collect::<String>()
+            .parse::<u64>()
+            .expect("Unable to parse log_message_id as a u64");
+        let msg = msg.chars().skip(split_index).collect::<String>();
+
+        log::info!(
+            "2(Rust: received) <{}> [tM={}]",
+            log_message_id,
+            log_recv_nanos
+        );
 
         self.received_response_type = ReceivedResponseType::Text;
         let client_request = ClientRequest::try_from_text(msg);
 
         let response = match client_request {
             Err(err) => Some(ServerResponse::Error(err)),
-            Ok(req) => self.handle_request(req).await,
+            Ok(req) => self.handle_request(req, Some(log_message_id)).await,
         };
 
         response.map(|resp| WsMessage::text(resp.into_text()))
@@ -308,18 +341,29 @@ impl Handler {
 
         let response = match client_request {
             Err(err) => Some(ServerResponse::Error(err)),
-            Ok(req) => self.handle_request(req).await,
+            Ok(req) => {
+                self.handle_request(
+                    req, None, // I'm not logging binary messages
+                )
+                .await
+            }
         };
 
         response.map(|resp| WsMessage::Binary(resp.into_binary()))
     }
 
-    async fn handle_ws_request(&mut self, raw_request: WsMessage) -> Option<WsMessage> {
+    async fn handle_ws_request(
+        &mut self,
+        raw_request: WsMessage,
+        log_recv_nanos: i64,
+    ) -> Option<WsMessage> {
         // apparently tungstenite auto-handles ping/pong/close messages so for now let's ignore
         // them and let's test that claim. If that's not the case, just copy code from
         // old version of this file.
         match raw_request {
-            WsMessage::Text(text_message) => self.handle_text_message(text_message).await,
+            WsMessage::Text(text_message) => {
+                self.handle_text_message(text_message, log_recv_nanos).await
+            }
             WsMessage::Binary(binary_message) => self.handle_binary_message(&binary_message).await,
             _ => None,
         }
@@ -367,6 +411,7 @@ impl Handler {
             tokio::select! {
                 // we can either get a client request from the websocket
                 socket_msg = self.next_websocket_request() => {
+                    let log_recv_nanos = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME).unwrap().num_nanoseconds();
                     if socket_msg.is_none() {
                         break;
                     }
@@ -382,7 +427,7 @@ impl Handler {
                         break;
                     }
 
-                    if let Some(response) = self.handle_ws_request(socket_msg).await {
+                    if let Some(response) = self.handle_ws_request(socket_msg, log_recv_nanos).await {
                         if let Err(err) = self.send_websocket_response(response).await {
                             warn!(
                                 "Failed to send message over websocket: {err}. Assuming the connection is dead.",

@@ -9,7 +9,7 @@ use crypto::generic_array::typenum::Unsigned;
 use crypto::hmac::recompute_keyed_hmac_and_verify_tag;
 use crypto::symmetric::stream_cipher;
 use nymsphinx::addressing::nodes::NymNodeRoutingAddressError;
-use nymsphinx::forwarding::packet::{MixPacket, MixPacketFormattingError};
+use nymsphinx::forwarding::packet::{LogMixPacketType, MixPacket, MixPacketFormattingError};
 use nymsphinx::params::packet_sizes::PacketSize;
 use nymsphinx::params::{GatewayEncryptionAlgorithm, GatewayIntegrityHmacAlgorithm};
 use nymsphinx::DestinationAddressBytes;
@@ -308,12 +308,13 @@ impl BinaryRequest {
     pub fn try_from_encrypted_tagged_bytes(
         raw_req: Vec<u8>,
         shared_keys: &SharedKeys,
+        log_mix_packet_type: Option<LogMixPacketType>,
     ) -> Result<Self, GatewayRequestsError> {
         let message_bytes = &shared_keys.decrypt_tagged(&raw_req, None)?;
 
         // right now there's only a single option possible which significantly simplifies the logic
         // if we decided to allow for more 'binary' messages, the API wouldn't need to change.
-        let mix_packet = MixPacket::try_from_bytes(message_bytes)?;
+        let mix_packet = MixPacket::try_from_bytes(message_bytes, log_mix_packet_type)?;
         Ok(BinaryRequest::ForwardSphinx(mix_packet))
     }
 

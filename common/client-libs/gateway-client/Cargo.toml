@@ -17,6 +17,8 @@ rand = { version = "0.7.3", features = ["wasm-bindgen"] }
 async-trait = { version = "0.1.51" }
 tokio = { version = "1.21.2", features = ["macros"] }
 
+nix = {version = "0.26.2", default-features = false, features = ["time"]}
+
 # internal
 coconut-interface = { path = "../../coconut-interface", optional = true }
 credentials = { path = "../../credentials" }

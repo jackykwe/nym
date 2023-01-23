@@ -9,7 +9,7 @@ use nymsphinx_addressing::clients::Recipient;
 use nymsphinx_addressing::nodes::NymNodeRoutingAddress;
 use nymsphinx_anonymous_replies::reply_surb::ReplySurb;
 use nymsphinx_chunking::fragment::{Fragment, FragmentIdentifier};
-use nymsphinx_forwarding::packet::MixPacket;
+use nymsphinx_forwarding::packet::{LogMixPacketType, MixPacket};
 use nymsphinx_params::packet_sizes::PacketSize;
 use nymsphinx_params::DEFAULT_NUM_MIX_HOPS;
 use nymsphinx_types::builder::SphinxPacketBuilder;
@@ -141,6 +141,7 @@ where
             (self.average_packet_delay.as_millis() * self.num_mix_hops as u128) as u64,
         );
 
+        let log_message_id = fragment.log_message_id;
         let fragment_identifier = fragment.fragment_identifier();
 
         // create an ack
@@ -161,7 +162,15 @@ where
             // well as the total delay of the ack packet.
             // we don't know the delays inside the reply surbs so we use best-effort estimation from our poisson distribution
             total_delay: expected_forward_delay + ack_delay,
-            mix_packet: MixPacket::new(first_hop_address, sphinx_packet, Default::default()),
+            mix_packet: MixPacket::new(
+                first_hop_address,
+                sphinx_packet,
+                Default::default(),
+                // Some(LogMixPacketType::RealReply),
+                None, // I'm not logging stuff related to replies yet
+                log_message_id,
+                Some(fragment_identifier),
+            ),
             fragment_identifier,
         })
     }
@@ -189,7 +198,9 @@ where
         topology: &NymTopology,
         ack_key: &AckKey,
         packet_recipient: &Recipient,
+        log_mix_packet_type: Option<LogMixPacketType>,
     ) -> Result<PreparedFragment, NymTopologyError> {
+        let log_message_id = fragment.log_message_id;
         let fragment_identifier = fragment.fragment_identifier();
 
         // create an ack
@@ -226,7 +237,14 @@ where
             // well as the total delay of the ack packet.
             // note that the last hop of the packet is a gateway that does not do any delays
             total_delay: delays.iter().take(delays.len() - 1).sum::<Delay>() + ack_delay,
-            mix_packet: MixPacket::new(first_hop_address, sphinx_packet, Default::default()),
+            mix_packet: MixPacket::new(
+                first_hop_address,
+                sphinx_packet,
+                Default::default(),
+                log_mix_packet_type,
+                log_message_id,
+                Some(fragment_identifier),
+            ),
             fragment_identifier,
         })
     }

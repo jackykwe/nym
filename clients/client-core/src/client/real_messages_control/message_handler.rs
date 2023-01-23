@@ -10,11 +10,13 @@ use crate::client::replies::reply_storage::{ReceivedReplySurbsMap, SentReplyKeys
 use crate::client::topology_control::{TopologyAccessor, TopologyReadPermit};
 use client_connections::TransmissionLane;
 use log::{debug, error, info, trace, warn};
+use nix::sys::time::TimeValLike;
 use nymsphinx::acknowledgements::AckKey;
 use nymsphinx::addressing::clients::Recipient;
 use nymsphinx::anonymous_replies::requests::{AnonymousSenderTag, RepliableMessage, ReplyMessage};
 use nymsphinx::anonymous_replies::{ReplySurb, SurbEncryptionKey};
 use nymsphinx::chunking::fragment::{Fragment, FragmentIdentifier};
+use nymsphinx::forwarding::packet::LogMixPacketType;
 use nymsphinx::message::NymMessage;
 use nymsphinx::params::{PacketSize, DEFAULT_NUM_MIX_HOPS};
 use nymsphinx::preparer::{MessagePreparer, PreparedFragment};
@@ -352,9 +354,29 @@ where
         message: Vec<u8>,
         lane: TransmissionLane,
     ) -> Result<(), PreparationError> {
-        let message = NymMessage::new_plain(message);
-        self.try_split_and_send_non_reply_message(message, recipient, lane)
-            .await
+        let message = String::from_utf8_lossy(&message);
+
+        let split_index = message.find('|').unwrap(); // This elusive bug cost an entire night
+        let log_message_id = message
+            .chars()
+            .take(split_index)
+            .collect::<String>()
+            .parse::<u64>()
+            .expect("Unable to parse log_message_id as a u64");
+        let message = message
+            .chars()
+            .skip(split_index)
+            .collect::<String>()
+            .into_bytes();
+
+        let message = NymMessage::new_plain(message, Some(log_message_id));
+        self.try_split_and_send_non_reply_message(
+            message,
+            recipient,
+            lane,
+            Some(LogMixPacketType::Real),
+        )
+        .await
     }
 
     pub(crate) async fn try_split_and_send_non_reply_message(
@@ -362,6 +384,7 @@ where
         message: NymMessage,
         recipient: Recipient,
         lane: TransmissionLane,
+        log_mix_packet_type: Option<LogMixPacketType>,
     ) -> Result<(), PreparationError> {
         // TODO: I really dislike existence of this assertion, it implies code has to be re-organised
         debug_assert!(!matches!(message, NymMessage::Reply(_)));
@@ -383,6 +406,7 @@ where
                 topology,
                 &self.config.ack_key,
                 &recipient,
+                log_mix_packet_type.clone(),
             )?;
 
             let real_message =
@@ -418,6 +442,7 @@ where
             message,
             recipient,
             TransmissionLane::AdditionalReplySurbs,
+            None, // I'm not logging stuff related to replies yet
         )
         .await?;
 
@@ -442,8 +467,12 @@ where
         let message =
             NymMessage::new_repliable(RepliableMessage::new_data(message, sender_tag, reply_surbs));
 
-        self.try_split_and_send_non_reply_message(message, recipient, lane)
-            .await?;
+        self.try_split_and_send_non_reply_message(
+            message, recipient, lane,
+            // Some(LogMixPacketType::RealWithReplySurb),
+            None, // I'm not logging stuff related to replies yet
+        )
+        .await?;
 
         log::trace!("storing {} reply keys", reply_keys.len());
         self.reply_key_storage.insert_multiple(reply_keys);
@@ -461,7 +490,14 @@ where
 
         let prepared_fragment = self
             .message_preparer
-            .prepare_chunk_for_sending(chunk, topology, &self.config.ack_key, &recipient)
+            .prepare_chunk_for_sending(
+                chunk,
+                topology,
+                &self.config.ack_key,
+                &recipient,
+                // Some(LogMixPacketType::RealRetransmission),
+                None, // I'm not logging stuff related to retransmissions yet
+            )
             .unwrap();
 
         Ok(prepared_fragment)
@@ -540,6 +576,18 @@ where
         messages: Vec<RealMessage>,
         transmission_lane: TransmissionLane,
     ) {
+        let t_m = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME)
+            .unwrap()
+            .num_nanoseconds();
+        for message in &messages {
+            log::info!(
+                "3(Rust: queuing) <{:?}:{}> [tM:{}]",
+                message.get_mix_packet().log_message_id,
+                message.get_fragment_id(),
+                t_m
+            );
+        }
+
         self.real_message_sender
             .send((messages, transmission_lane))
             .await

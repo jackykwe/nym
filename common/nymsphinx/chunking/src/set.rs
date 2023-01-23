@@ -82,6 +82,7 @@ fn prepare_unlinked_fragmented_set(
     message: &[u8],
     id: i32,
     max_plaintext_size: usize,
+    log_message_id: Option<u64>,
 ) -> FragmentSet {
     let pre_casted_frags = (message.len() as f64
         / unlinked_fragment_payload_max_len(max_plaintext_size) as f64)
@@ -108,6 +109,7 @@ fn prepare_unlinked_fragmented_set(
                 None,
                 None,
                 max_plaintext_size,
+                log_message_id,
             )
             .unwrap(),
         )
@@ -126,6 +128,7 @@ fn prepare_linked_fragment_set(
     previous_link_id: Option<i32>,
     next_link_id: Option<i32>,
     max_plaintext_size: usize,
+    log_message_id: Option<u64>,
 ) -> FragmentSet {
     // determine number of fragments in the set:
     let num_frags_usize = if next_link_id.is_some() {
@@ -173,6 +176,7 @@ fn prepare_linked_fragment_set(
                 None
             },
             max_plaintext_size,
+            log_message_id,
         )
         .unwrap();
 
@@ -214,6 +218,7 @@ fn prepare_fragment_set(
     previous_link_id: Option<i32>,
     next_link_id: Option<i32>,
     max_plaintext_size: usize,
+    log_message_id: Option<u64>,
 ) -> FragmentSet {
     if previous_link_id.is_some() || next_link_id.is_some() {
         prepare_linked_fragment_set(
@@ -222,11 +227,12 @@ fn prepare_fragment_set(
             previous_link_id,
             next_link_id,
             max_plaintext_size,
+            log_message_id,
         )
     } else {
         // the bounds on whether the message fits in an unlinked set should have been done by the callee
         // when determining ids of other sets
-        prepare_unlinked_fragmented_set(message, id, max_plaintext_size)
+        prepare_unlinked_fragmented_set(message, id, max_plaintext_size, log_message_id)
     }
 }
 
@@ -236,6 +242,7 @@ pub fn split_into_sets<R: Rng>(
     rng: &mut R,
     message: &[u8],
     max_plaintext_size: usize,
+    log_message_id: Option<u64>,
 ) -> Vec<FragmentSet> {
     let num_of_sets = total_number_of_sets(message.len(), max_plaintext_size);
     if num_of_sets == 1 {
@@ -246,6 +253,7 @@ pub fn split_into_sets<R: Rng>(
             None,
             None,
             max_plaintext_size,
+            log_message_id,
         )]
     } else {
         let mut sets = Vec::with_capacity(num_of_sets);
@@ -270,6 +278,7 @@ pub fn split_into_sets<R: Rng>(
                     Some(set_ids[i + 1])
                 },
                 max_plaintext_size,
+                log_message_id,
             );
 
             sets.push(fragment_set);

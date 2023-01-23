@@ -14,7 +14,7 @@ use nymsphinx::acknowledgements::AckKey;
 use nymsphinx::addressing::clients::Recipient;
 use nymsphinx::chunking::fragment::FragmentIdentifier;
 use nymsphinx::cover::generate_loop_cover_packet;
-use nymsphinx::forwarding::packet::MixPacket;
+use nymsphinx::forwarding::packet::{LogMixPacketType, MixPacket};
 use nymsphinx::params::PacketSize;
 use nymsphinx::preparer::PreparedFragment;
 use nymsphinx::utils::sample_poisson_duration;
@@ -168,6 +168,20 @@ impl RealMessage {
             fragment_id,
         }
     }
+
+    // Added as a method instead of making the mix_packet field public, as this method can be
+    // conditionally compiled, and the programmer is prevented, as originally designed, from
+    // accessing mix_packet directly in the case where this code isn't conditionally compiled.
+    pub fn get_mix_packet(&self) -> &MixPacket {
+        &self.mix_packet
+    }
+
+    // Added as a method instead of making the fragment_id field public, as this method can be
+    // conditionally compiled, and the programmer is prevented, as originally designed, from
+    // accessing fragment_id directly in the case where this code isn't conditionally compiled.
+    pub fn get_fragment_id(&self) -> &FragmentIdentifier {
+        &self.fragment_id
+    }
 }
 
 // messages are already prepared, etc. the real point of it is to forward it to mix_traffic
@@ -251,6 +265,7 @@ where
                         self.config.average_ack_delay,
                         self.config.average_packet_delay,
                         self.config.cover_packet_size,
+                        Some(LogMixPacketType::LoopCoverReal),
                     )
                     .expect(
                         "Somehow failed to generate a loop cover message with a valid topology",

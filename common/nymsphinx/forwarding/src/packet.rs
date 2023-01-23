@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use nymsphinx_addressing::nodes::{NymNodeRoutingAddress, NymNodeRoutingAddressError};
+use nymsphinx_chunking::fragment::FragmentIdentifier;
 use nymsphinx_params::{PacketMode, PacketSize};
 use nymsphinx_types::SphinxPacket;
 use std::convert::TryFrom;
@@ -44,10 +45,25 @@ impl From<NymNodeRoutingAddressError> for MixPacketFormattingError {
     }
 }
 
+//
+#[derive(Clone, Copy)]
+pub enum LogMixPacketType {
+    LoopCover,
+    LoopCoverReal,
+    Real,
+    RealWithReplySurb,
+    RealReply, // replying to a SURB
+    RealRetransmission,
+}
+
+// log_message_id and log_fragment_identifier must put in MixPacket, because that's what the code that sends packets out to the gateway sees. If logging is to be done, must put in MixPacket. MixPacket is an internal structure (not send on wire), so this is fine. log_mix_packet_type is used to disambiguate different message types, because a MixPacket is a common struct used by various kinds of messages.
 pub struct MixPacket {
     next_hop: NymNodeRoutingAddress,
     sphinx_packet: SphinxPacket,
     packet_mode: PacketMode,
+    pub log_mix_packet_type: Option<LogMixPacketType>,
+    pub log_message_id: Option<u64>,
+    pub log_fragment_identifier: Option<FragmentIdentifier>,
 }
 
 impl Debug for MixPacket {
@@ -68,11 +84,17 @@ impl MixPacket {
         next_hop: NymNodeRoutingAddress,
         sphinx_packet: SphinxPacket,
         packet_mode: PacketMode,
+        log_mix_packet_type: Option<LogMixPacketType>,
+        log_message_id: Option<u64>,
+        log_fragment_identifier: Option<FragmentIdentifier>,
     ) -> Self {
         MixPacket {
             next_hop,
             sphinx_packet,
             packet_mode,
+            log_mix_packet_type,
+            log_message_id,
+            log_fragment_identifier,
         }
     }
 
@@ -94,7 +116,10 @@ impl MixPacket {
 
     // the message is formatted as follows:
     // PACKET_MODE || FIRST_HOP || SPHINX_PACKET
-    pub fn try_from_bytes(b: &[u8]) -> Result<Self, MixPacketFormattingError> {
+    pub fn try_from_bytes(
+        b: &[u8],
+        log_mix_packet_type: Option<LogMixPacketType>,
+    ) -> Result<Self, MixPacketFormattingError> {
         let packet_mode = match PacketMode::try_from(b[0]) {
             Ok(mode) => mode,
             Err(_) => return Err(MixPacketFormattingError::InvalidPacketMode),
@@ -117,6 +142,9 @@ impl MixPacket {
                 next_hop,
                 sphinx_packet,
                 packet_mode,
+                log_mix_packet_type,
+                log_message_id: None,
+                log_fragment_identifier: None,
             })
         }
     }

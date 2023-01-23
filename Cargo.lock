@@ -600,6 +600,7 @@ dependencies = [
  "gloo-timers",
  "humantime-serde",
  "log",
+ "nix",
  "nonexhaustive-delayqueue",
  "nymsphinx",
  "pemstore",
@@ -1941,6 +1942,7 @@ dependencies = [
  "getrandom 0.2.6",
  "log",
  "network-defaults",
+ "nix",
  "nymsphinx",
  "pemstore",
  "rand 0.7.3",
@@ -2699,9 +2701,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.122"
+version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec647867e2bf0772e28c8bcde4f0d19a9216916e890543b5a03ed8ef27b8f259"
+checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 
 [[package]]
 name = "libgit2-sys"
@@ -3012,6 +3014,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.26.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfdda3d196821d6af13126e40375cdf7da646a96114af134d5f417a9a1dc8e1a"
+dependencies = [
+ "bitflags",
+ "cfg-if 1.0.0",
+ "libc",
+ "static_assertions",
+]
+
+[[package]]
 name = "no-std-compat"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3178,6 +3192,7 @@ dependencies = [
  "log",
  "logging",
  "network-defaults",
+ "nix",
  "nymsphinx",
  "pemstore",
  "pretty_env_logger",
@@ -3604,6 +3619,7 @@ name = "nymsphinx-forwarding"
 version = "0.1.0"
 dependencies = [
  "nymsphinx-addressing",
+ "nymsphinx-chunking",
  "nymsphinx-params",
  "nymsphinx-types",
 ]

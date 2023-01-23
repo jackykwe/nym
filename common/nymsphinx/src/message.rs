@@ -51,7 +51,12 @@ impl TryFrom<u8> for NymMessageType {
     }
 }
 
-pub type PlainMessage = Vec<u8>;
+// pub type PlainMessage = Vec<u8>;
+#[derive(Debug)]
+pub struct PlainMessage {
+    pub inner: Vec<u8>,
+    pub log_message_id: Option<u64>,
+}
 
 #[derive(Debug)]
 pub enum NymMessage {
@@ -66,7 +71,7 @@ impl Display for NymMessage {
             NymMessage::Plain(plain_message) => write!(
                 f,
                 "plain {:.2} kiB message",
-                plain_message.len() as f64 / 1024.0
+                plain_message.inner.len() as f64 / 1024.0
             ),
             NymMessage::Repliable(repliable_message) => repliable_message.fmt(f),
             NymMessage::Reply(reply_message) => reply_message.fmt(f),
@@ -84,8 +89,11 @@ impl NymMessage {
         })
     }
 
-    pub fn new_plain(msg: Vec<u8>) -> Self {
-        NymMessage::Plain(msg)
+    pub fn new_plain(msg: Vec<u8>, log_message_id: Option<u64>) -> Self {
+        NymMessage::Plain(PlainMessage {
+            inner: msg,
+            log_message_id,
+        })
     }
 
     pub fn new_repliable(msg: RepliableMessage) -> Self {
@@ -107,7 +115,7 @@ impl NymMessage {
 
     pub fn into_inner_data(self) -> Vec<u8> {
         match self {
-            NymMessage::Plain(data) => data,
+            NymMessage::Plain(data) => data.inner,
             NymMessage::Repliable(repliable) => match repliable.content {
                 RepliableMessageContent::Data { message, .. } => message,
                 _ => Vec::new(),
@@ -129,7 +137,7 @@ impl NymMessage {
 
     fn inner_bytes(self) -> Vec<u8> {
         match self {
-            NymMessage::Plain(msg) => msg,
+            NymMessage::Plain(msg) => msg.inner,
             NymMessage::Repliable(msg) => msg.into_bytes(),
             NymMessage::Reply(msg) => msg.into_bytes(),
         }
@@ -152,7 +160,10 @@ impl NymMessage {
 
         let typ_tag = NymMessageType::try_from(bytes[0])?;
         match typ_tag {
-            NymMessageType::Plain => Ok(NymMessage::Plain(bytes[1..].to_vec())),
+            NymMessageType::Plain => Ok(NymMessage::Plain(PlainMessage {
+                inner: bytes[1..].to_vec(),
+                log_message_id: None, // TODO handle logging incoming messages
+            })),
             NymMessageType::Repliable => Ok(NymMessage::Repliable(
                 RepliableMessage::try_from_bytes(&bytes[1..], num_mix_hops)?,
             )),
@@ -183,6 +194,7 @@ impl NymMessage {
     /// Pads the message so that after it gets chunked, it will occupy exactly N sphinx packets.
     /// Produces new_message = message || 1 || 0000....
     pub fn pad_to_full_packet_lengths(self, plaintext_per_packet: usize) -> PaddedMessage {
+        let log_message_id = self.get_log_message_id();
         let bytes = self.into_bytes();
 
         // 1 is added as there will always have to be at least a single byte of padding (1) added
@@ -190,20 +202,36 @@ impl NymMessage {
         let (_, space_left) =
             chunking::number_of_required_fragments(bytes.len() + 1, plaintext_per_packet);
 
-        bytes
-            .into_iter()
-            .chain(std::iter::once(1u8))
-            .chain(std::iter::repeat(0u8).take(space_left))
-            .collect::<Vec<_>>()
-            .into()
+        PaddedMessage {
+            inner: bytes
+                .into_iter()
+                .chain(std::iter::once(1u8))
+                .chain(std::iter::repeat(0u8).take(space_left))
+                .collect::<Vec<_>>(),
+            log_message_id,
+        }
+    }
+
+    pub fn get_log_message_id(&self) -> Option<u64> {
+        match self {
+            NymMessage::Plain(plain_message) => plain_message.log_message_id,
+            NymMessage::Repliable(_) => None,
+            NymMessage::Reply(_) => None,
+        }
     }
 }
 
-pub struct PaddedMessage(Vec<u8>);
+pub struct PaddedMessage {
+    inner: Vec<u8>,
+    log_message_id: Option<u64>,
+}
 
 impl PaddedMessage {
     pub fn new_reconstructed(bytes: Vec<u8>) -> Self {
-        PaddedMessage(bytes)
+        PaddedMessage {
+            inner: bytes,
+            log_message_id: None, // TODO: handle logging incoming messages
+        }
     }
 
     /// Splits the padded message into [`Fragment`] that when serialized are going to become
@@ -213,7 +241,7 @@ impl PaddedMessage {
         rng: &mut R,
         plaintext_per_packet: usize,
     ) -> Vec<Fragment> {
-        chunking::split_into_sets(rng, &self.0, plaintext_per_packet)
+        chunking::split_into_sets(rng, &self.inner, plaintext_per_packet, self.log_message_id)
             .into_iter()
             .flat_map(|fragment_set| fragment_set.into_iter())
             .collect()
@@ -222,9 +250,9 @@ impl PaddedMessage {
     // reverse of NymMessage::pad_to_full_packet_lengths
     pub fn remove_padding(self, num_mix_hops: u8) -> Result<NymMessage, NymMessageError> {
         // we are looking for first occurrence of 1 in the tail and we get its index
-        if let Some(padding_end) = self.0.iter().rposition(|b| *b == 1) {
+        if let Some(padding_end) = self.inner.iter().rposition(|b| *b == 1) {
             // and now we only take bytes until that point (but not including it)
-            NymMessage::try_from_bytes(&self.0[..padding_end], num_mix_hops)
+            NymMessage::try_from_bytes(&self.inner[..padding_end], num_mix_hops)
         } else {
             Err(NymMessageError::InvalidMessagePadding)
         }
@@ -233,6 +261,9 @@ impl PaddedMessage {
 
 impl From<Vec<u8>> for PaddedMessage {
     fn from(bytes: Vec<u8>) -> Self {
-        PaddedMessage(bytes)
+        PaddedMessage {
+            inner: bytes,
+            log_message_id: None, // TODO: handle case. logging incoming messages?
+        }
     }
 }

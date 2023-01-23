@@ -8,7 +8,7 @@ use nymsphinx_acknowledgements::AckKey;
 use nymsphinx_addressing::clients::Recipient;
 use nymsphinx_addressing::nodes::NymNodeRoutingAddress;
 use nymsphinx_chunking::fragment::COVER_FRAG_ID;
-use nymsphinx_forwarding::packet::MixPacket;
+use nymsphinx_forwarding::packet::{LogMixPacketType, MixPacket};
 use nymsphinx_params::packet_sizes::PacketSize;
 use nymsphinx_params::{
     PacketEncryptionAlgorithm, PacketHkdfAlgorithm, PacketMode, DEFAULT_NUM_MIX_HOPS,
@@ -60,6 +60,7 @@ pub fn generate_loop_cover_packet<R>(
     average_ack_delay: time::Duration,
     average_packet_delay: time::Duration,
     packet_size: PacketSize,
+    log_mix_packet_type: Option<LogMixPacketType>,
 ) -> Result<MixPacket, CoverMessageError>
 where
     R: RngCore + CryptoRng,
@@ -119,7 +120,14 @@ where
     let first_hop_address =
         NymNodeRoutingAddress::try_from(route.first().unwrap().address).unwrap();
 
-    Ok(MixPacket::new(first_hop_address, packet, PacketMode::Mix))
+    Ok(MixPacket::new(
+        first_hop_address,
+        packet,
+        PacketMode::Mix,
+        log_mix_packet_type,
+        None,
+        None,
+    ))
 }
 
 /// Helper function used to determine if given message represents a loop cover message.

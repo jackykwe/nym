@@ -357,7 +357,11 @@ where
     /// * `bin_msg`: raw message to handle.
     async fn handle_binary(&self, bin_msg: Vec<u8>) -> Message {
         // this function decrypts the request and checks the MAC
-        match BinaryRequest::try_from_encrypted_tagged_bytes(bin_msg, &self.client.shared_keys) {
+        match BinaryRequest::try_from_encrypted_tagged_bytes(
+            bin_msg,
+            &self.client.shared_keys,
+            None, // I'm not logging stuff happening at gateways
+        ) {
             Err(e) => RequestHandlingError::InvalidBinaryRequest(e).into_error_message(),
             Ok(request) => match request {
                 // currently only a single type exists

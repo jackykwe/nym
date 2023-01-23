@@ -17,7 +17,8 @@ use gateway_requests::registration::handshake::{client_handshake, SharedKeys};
 use gateway_requests::{BinaryRequest, ClientControlRequest, ServerResponse, PROTOCOL_VERSION};
 use log::*;
 use network_defaults::{REMAINING_BANDWIDTH_THRESHOLD, TOKENS_TO_BURN};
-use nymsphinx::forwarding::packet::MixPacket;
+use nix::sys::time::TimeValLike;
+use nymsphinx::forwarding::packet::{LogMixPacketType, MixPacket};
 use rand::rngs::OsRng;
 use std::convert::TryFrom;
 use std::sync::Arc;
@@ -701,6 +702,11 @@ impl GatewayClient {
         if !self.connection.is_established() {
             return Err(GatewayClientError::ConnectionNotEstablished);
         }
+
+        let log_mix_packet_type = mix_packet.log_mix_packet_type;
+        let log_message_id = mix_packet.log_message_id;
+        let log_fragment_identifier = mix_packet.log_fragment_identifier;
+
         // note: into_ws_message encrypts the requests and adds a MAC on it. Perhaps it should
         // be more explicit in the naming?
         let msg = BinaryRequest::new_forward_request(mix_packet).into_ws_message(
@@ -708,6 +714,29 @@ impl GatewayClient {
                 .as_ref()
                 .expect("no shared key present even though we're authenticated!"),
         );
+
+        let t_m = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME)
+            .unwrap()
+            .num_nanoseconds();
+        if let Some(log_mix_packet_type) = log_mix_packet_type {
+            match log_mix_packet_type {
+                LogMixPacketType::LoopCover => {
+                    log::debug!("4(Rust: sending) <LOOP_COVER> [tM:{}]", t_m)
+                }
+                LogMixPacketType::LoopCoverReal => {
+                    log::debug!("4(Rust: sending) <LOOP_COVER_REAL> [tM:{}]", t_m)
+                }
+                LogMixPacketType::Real => log::info!(
+                    "4(Rust: sending) <{:?}:{:?}> [tM:{}]",
+                    log_message_id,
+                    log_fragment_identifier,
+                    t_m
+                ),
+                LogMixPacketType::RealWithReplySurb => todo!(),
+                LogMixPacketType::RealReply => todo!(),
+                LogMixPacketType::RealRetransmission => todo!(),
+            }
+        }
         self.send_with_reconnection_on_failure(msg).await
     }
 

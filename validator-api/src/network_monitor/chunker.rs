@@ -55,14 +55,23 @@ impl Chunker {
 
         let split_message = self
             .message_preparer
-            .pad_and_split_message(NymMessage::new_plain(message));
+            .pad_and_split_message(NymMessage::new_plain(
+                message,
+                None, // I'm not logging stuff happening at validators
+            ));
 
         let mut mix_packets = Vec::with_capacity(split_message.len());
         for message_chunk in split_message {
             // don't bother with acks etc. for time being
             let prepared_fragment = self
                 .message_preparer
-                .prepare_chunk_for_sending(message_chunk, topology, &ack_key, &packet_sender)
+                .prepare_chunk_for_sending(
+                    message_chunk,
+                    topology,
+                    &ack_key,
+                    &packet_sender,
+                    None, // I'm not logging stuff happening at validators
+                )
                 .unwrap();
 
             mix_packets.push(prepared_fragment.mix_packet);

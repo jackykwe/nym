@@ -22,6 +22,8 @@ url = { version ="2.2", features = ["serde"] }
 tokio = { version = "1.21.2", features = ["macros"]}
 time = "0.3.17"
 
+nix = {version = "0.26.2", default-features = false, features = ["time"]}
+
 # internal
 config = { path = "../../common/config" }
 client-connections = { path = "../../common/client-connections" }
