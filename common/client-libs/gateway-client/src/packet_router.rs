@@ -11,8 +11,18 @@ use nymsphinx::addressing::nodes::MAX_NODE_ADDRESS_UNPADDED_LEN;
 use nymsphinx::params::packet_sizes::PacketSize;
 use task::ShutdownListener;
 
-pub type MixnetMessageSender = mpsc::UnboundedSender<Vec<Vec<u8>>>;
-pub type MixnetMessageReceiver = mpsc::UnboundedReceiver<Vec<Vec<u8>>>;
+// This was previously just a Vec<u8>, but I need to associate with each Vec<u8> (fragment) a
+// temporary fragment ID, so that we are able to track the time that we received this fragment from
+// the gateway (with a bit of work)
+#[derive(Debug)]
+pub struct LogMixnetMessage {
+    pub inner: Vec<u8>,
+    /// present (received message from gateway), or absent (received control response)
+    pub log_unassociated_fragment_id: Option<u64>,
+}
+
+pub type MixnetMessageSender = mpsc::UnboundedSender<Vec<LogMixnetMessage>>;
+pub type MixnetMessageReceiver = mpsc::UnboundedReceiver<Vec<LogMixnetMessage>>;
 
 pub type AcknowledgementSender = mpsc::UnboundedSender<Vec<Vec<u8>>>;
 pub type AcknowledgementReceiver = mpsc::UnboundedReceiver<Vec<Vec<u8>>>;
@@ -40,6 +50,8 @@ impl PacketRouter {
     pub fn route_received(
         &mut self,
         unwrapped_packets: Vec<Vec<u8>>,
+        log_recv_nanos: Option<i64>, // present together (received message from gateway), or absent together (received control response)
+        log_unassociated_fragment_id_start: Option<u64>, // present together (received message from gateway), or absent together (received control response)
     ) -> Result<(), GatewayClientError> {
         let mut received_messages = Vec::new();
         let mut received_acks = Vec::new();
@@ -49,6 +61,8 @@ impl PacketRouter {
         // currently SURB-ACKs are attached in EVERY packet, even cover, so this is always true
         let ack_overhead = PacketSize::AckPacket.size() + MAX_NODE_ADDRESS_UNPADDED_LEN;
 
+        let mut log_unassociated_fragment_id = log_unassociated_fragment_id_start;
+
         for received_packet in unwrapped_packets {
             if received_packet.len() == PacketSize::AckPacket.plaintext_size() {
                 received_acks.push(received_packet);
@@ -56,26 +70,79 @@ impl PacketRouter {
                 == PacketSize::RegularPacket.plaintext_size() - ack_overhead
             {
                 trace!("routing regular packet");
-                received_messages.push(received_packet);
+                if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
+                    log::info!(
+                        "tK=5 l=RustReceivedGateway_reg tM={} ufId={}",
+                        log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
+                        log_unassociated_fragment_id
+                    );
+                }
+                received_messages.push(LogMixnetMessage {
+                    inner: received_packet,
+                    log_unassociated_fragment_id,
+                });
             } else if received_packet.len()
                 == PacketSize::ExtendedPacket8.plaintext_size() - ack_overhead
             {
                 trace!("routing extended8 packet");
-                received_messages.push(received_packet);
+                if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
+                    log::info!(
+                        "tK=5 l=RustReceivedGateway_ext8 tM={} ufId={}",
+                        log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
+                        log_unassociated_fragment_id
+                    );
+                }
+                received_messages.push(LogMixnetMessage {
+                    inner: received_packet,
+                    log_unassociated_fragment_id,
+                });
             } else if received_packet.len()
                 == PacketSize::ExtendedPacket16.plaintext_size() - ack_overhead
             {
                 trace!("routing extended16 packet");
-                received_messages.push(received_packet);
+                if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
+                    log::info!(
+                        "tK=5 l=RustReceivedGateway_ext16 tM={} ufId={}",
+                        log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
+                        log_unassociated_fragment_id
+                    );
+                }
+                received_messages.push(LogMixnetMessage {
+                    inner: received_packet,
+                    log_unassociated_fragment_id,
+                });
             } else if received_packet.len()
                 == PacketSize::ExtendedPacket32.plaintext_size() - ack_overhead
             {
                 trace!("routing extended32 packet");
-                received_messages.push(received_packet);
+                if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
+                    log::info!(
+                        "tK=5 l=RustReceivedGateway_ext32 tM={} ufId={}",
+                        log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
+                        log_unassociated_fragment_id
+                    );
+                }
+                received_messages.push(LogMixnetMessage {
+                    inner: received_packet,
+                    log_unassociated_fragment_id,
+                });
             } else {
                 // this can happen if other clients are not padding their messages
                 warn!("Received message of unexpected size. Probably from an outdated client... len: {}", received_packet.len());
-                received_messages.push(received_packet);
+                if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
+                    log::info!(
+                        "tK=5 l=RustReceivedGateway_UNEXP tM={} ufId={}",
+                        log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
+                        log_unassociated_fragment_id
+                    );
+                }
+                received_messages.push(LogMixnetMessage {
+                    inner: received_packet,
+                    log_unassociated_fragment_id,
+                });
+            };
+            if let Some(v) = log_unassociated_fragment_id {
+                log_unassociated_fragment_id = Some(v + 1);
             }
         }
 

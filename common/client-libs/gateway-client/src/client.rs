@@ -305,11 +305,19 @@ impl GatewayClient {
                             // otherwise there's not much we can do apart from just routing what we have on hand
                             if let Some(shared_keys) = &self.shared_key {
                                 if let Some(plaintext) = try_decrypt_binary_message(bin_msg, shared_keys) {
-                                    if let Err(err) = self.packet_router.route_received(vec![plaintext]) {
+                                    if let Err(err) = self.packet_router.route_received(
+                                        vec![plaintext],
+                                        None, // I'm not logging stuff related to control responses
+                                        None // I'm not logging stuff related to control responses
+                                    ) {
                                         log::warn!("Route received failed: {:?}", err);
                                     }
                                 }
-                            } else if let Err(err) = self.packet_router.route_received(vec![bin_msg]) {
+                            } else if let Err(err) = self.packet_router.route_received(
+                                vec![bin_msg],
+                                None, // I'm not logging stuff related to control responses
+                                None // I'm not logging stuff related to control responses
+                            ) {
                                 log::warn!("Route received failed: {:?}", err);
                             }
                         }

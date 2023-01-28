@@ -70,7 +70,7 @@ impl PacketReceiver {
                 // as an infinite stream that returns Poll::Pending if it doesn't have anything
                 // to return
                 Some((_gateway_id, message)) = self.gateways_reader.stream_map().next() => {
-                        self.process_gateway_messages(message)
+                        self.process_gateway_messages(message.into_iter().map(|m| m.inner).collect())
                 }
             }
         }

@@ -9,6 +9,7 @@ use crypto::Digest;
 use futures::channel::mpsc;
 use futures::lock::Mutex;
 use futures::StreamExt;
+use gateway_client::packet_router::LogMixnetMessage;
 use gateway_client::MixnetMessageReceiver;
 use log::*;
 use nymsphinx::anonymous_replies::requests::{
@@ -334,7 +335,7 @@ impl ReceivedMessagesBuffer {
             })
     }
 
-    async fn handle_new_received(&mut self, msgs: Vec<Vec<u8>>) {
+    async fn handle_new_received(&mut self, msgs: Vec<LogMixnetMessage>) {
         trace!(
             "Processing {:?} new message that might get added to the buffer!",
             msgs.len()
@@ -349,10 +350,10 @@ impl ReceivedMessagesBuffer {
             // check first `HasherOutputSize` bytes if they correspond to known encryption key
             // if yes - this is a reply message
             let completed_message =
-                if let Some((reply_key, reply_message)) = self.get_reply_key(&mut msg) {
+                if let Some((reply_key, reply_message)) = self.get_reply_key(&mut msg.inner) {
                     inner_guard.process_received_reply(reply_message, reply_key)
                 } else {
-                    inner_guard.process_received_regular_packet(msg)
+                    inner_guard.process_received_regular_packet(msg.inner)
                 };
 
             if let Some(completed) = completed_message {

@@ -9,6 +9,7 @@ use futures::stream::{SplitSink, SplitStream};
 use futures::{SinkExt, StreamExt};
 use gateway_requests::registration::handshake::SharedKeys;
 use log::*;
+use nix::sys::time::TimeValLike;
 use std::sync::Arc;
 use task::ShutdownListener;
 use tungstenite::Message;
@@ -75,9 +76,15 @@ impl PartiallyDelegated {
         ws_msgs: Vec<Message>,
         packet_router: &mut PacketRouter,
         shared_key: &SharedKeys,
+        log_recv_nanos: i64,
+        log_unassociated_fragment_id_start: u64,
     ) -> Result<(), GatewayClientError> {
         let plaintexts = Self::recover_received_plaintexts(ws_msgs, shared_key);
-        packet_router.route_received(plaintexts)
+        packet_router.route_received(
+            plaintexts,
+            Some(log_recv_nanos),
+            Some(log_unassociated_fragment_id_start),
+        )
     }
 
     pub(crate) fn split_and_listen_for_mixnet_messages(
@@ -98,6 +105,7 @@ impl PartiallyDelegated {
             let mut chunk_stream = (&mut stream).ready_chunks(8);
             let mut packet_router = packet_router;
 
+            let mut log_unassociated_fragment_id_start: u64 = 0;
             let ret_err = loop {
                 tokio::select! {
                     _ = shutdown.recv() => {
@@ -109,14 +117,18 @@ impl PartiallyDelegated {
                         break Ok(());
                     }
                     msgs = chunk_stream.next() => {
+                        // TODO (clarify): Chunking affecting timing results? Incoming messages only see chunked
+                        let log_recv_nanos = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME).unwrap().num_nanoseconds();
                         let ws_msgs = match cleanup_socket_messages(msgs) {
                             Err(err) => break Err(err),
                             Ok(msgs) => msgs
                         };
+                        let ws_msgs_len: u64 = ws_msgs.len().try_into().expect("Unable to get ws_msgs_len as a u64");
 
-                        if let Err(err) = Self::route_socket_messages(ws_msgs, &mut packet_router, shared_key.as_ref()) {
+                        if let Err(err) = Self::route_socket_messages(ws_msgs, &mut packet_router, shared_key.as_ref(), log_recv_nanos, log_unassociated_fragment_id_start) {
                             log::warn!("Route socket messages failed: {:?}", err);
                         }
+                        log_unassociated_fragment_id_start += ws_msgs_len;
                     }
                 };
             };

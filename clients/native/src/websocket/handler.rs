@@ -111,10 +111,8 @@ impl Handler {
 
         let mut message_tagged = log_message_id
             .unwrap() // existence check is handled earlier
-            .to_string()
-            .as_bytes()
+            .to_be_bytes()
             .to_vec();
-        message_tagged.extend("|".as_bytes().iter());
         message_tagged.extend(message);
 
         // the ack control is now responsible for chunking, etc.
@@ -317,9 +315,9 @@ impl Handler {
         let msg = msg.chars().skip(split_index).collect::<String>();
 
         log::info!(
-            "2(Rust: received) <{}> [tM={}]",
-            log_message_id,
-            log_recv_nanos
+            "tK=2 l=RustArrivedKotlin tM={} mId={}",
+            log_recv_nanos,
+            log_message_id
         );
 
         self.received_response_type = ReceivedResponseType::Text;
@@ -380,6 +378,10 @@ impl Handler {
             ReceivedResponseType::Binary => prepare_reconstructed_binary(reconstructed_messages),
             ReceivedResponseType::Text => prepare_reconstructed_text(reconstructed_messages),
         };
+
+        // let t_m = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME)
+        //     .unwrap()
+        //     .num_nanoseconds();
 
         let mut send_stream = futures::stream::iter(response_messages);
         self.socket

@@ -354,20 +354,9 @@ where
         message: Vec<u8>,
         lane: TransmissionLane,
     ) -> Result<(), PreparationError> {
-        let message = String::from_utf8_lossy(&message);
-
-        let split_index = message.find('|').unwrap(); // This elusive bug cost an entire night
-        let log_message_id = message
-            .chars()
-            .take(split_index)
-            .collect::<String>()
-            .parse::<u64>()
-            .expect("Unable to parse log_message_id as a u64");
-        let message = message
-            .chars()
-            .skip(split_index)
-            .collect::<String>()
-            .into_bytes();
+        let mut log_message_id = message;
+        let message = log_message_id.split_off(8);
+        let log_message_id = u64::from_be_bytes(log_message_id.try_into().unwrap());
 
         let message = NymMessage::new_plain(message, Some(log_message_id));
         self.try_split_and_send_non_reply_message(
@@ -406,7 +395,7 @@ where
                 topology,
                 &self.config.ack_key,
                 &recipient,
-                log_mix_packet_type.clone(),
+                log_mix_packet_type,
             )?;
 
             let real_message =
