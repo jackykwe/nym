@@ -82,7 +82,7 @@ fn prepare_unlinked_fragmented_set(
     message: &[u8],
     id: i32,
     max_plaintext_size: usize,
-    log_message_id: Option<u64>,
+    log_message_id: Option<u64>, // from PaddedMessage: present (trying to send message to gateway), or absent (otherwise).
 ) -> FragmentSet {
     let pre_casted_frags = (message.len() as f64
         / unlinked_fragment_payload_max_len(max_plaintext_size) as f64)
@@ -128,7 +128,7 @@ fn prepare_linked_fragment_set(
     previous_link_id: Option<i32>,
     next_link_id: Option<i32>,
     max_plaintext_size: usize,
-    log_message_id: Option<u64>,
+    log_message_id: Option<u64>, // from PaddedMessage: present (trying to send message to gateway), or absent (otherwise).
 ) -> FragmentSet {
     // determine number of fragments in the set:
     let num_frags_usize = if next_link_id.is_some() {
@@ -218,7 +218,7 @@ fn prepare_fragment_set(
     previous_link_id: Option<i32>,
     next_link_id: Option<i32>,
     max_plaintext_size: usize,
-    log_message_id: Option<u64>,
+    log_message_id: Option<u64>, // from PaddedMessage: present (trying to send message to gateway), or absent (otherwise).
 ) -> FragmentSet {
     if previous_link_id.is_some() || next_link_id.is_some() {
         prepare_linked_fragment_set(
@@ -242,7 +242,7 @@ pub fn split_into_sets<R: Rng>(
     rng: &mut R,
     message: &[u8],
     max_plaintext_size: usize,
-    log_message_id: Option<u64>,
+    log_message_id: Option<u64>, // from PaddedMessage: present (trying to send message to gateway), or absent (otherwise)
 ) -> Vec<FragmentSet> {
     let num_of_sets = total_number_of_sets(message.len(), max_plaintext_size);
     if num_of_sets == 1 {

@@ -49,7 +49,10 @@ where
         packet_recipient: Recipient,
         chunk_data: Fragment,
     ) -> Result<PreparedFragment, PreparationError> {
-        debug!("retransmitting normal packet...");
+        error!(
+            "retransmitting normal packet... ({:?}) {:?}",
+            chunk_data.log_message_id, chunk_data
+        );
 
         self.message_handler
             .try_prepare_single_chunk_for_sending(packet_recipient, chunk_data)

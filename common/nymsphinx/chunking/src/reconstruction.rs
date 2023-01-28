@@ -284,6 +284,7 @@ impl MessageReconstructor {
         }
     }
 
+    // * NB: This method is only called from tests
     /// Given raw `Fragment` data, tries to decode and return it.
     pub fn recover_fragment(&self, fragment_data: Vec<u8>) -> Result<Fragment, ChunkingError> {
         Fragment::try_from_bytes(&fragment_data)

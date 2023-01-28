@@ -97,7 +97,7 @@ impl Handler {
         recipient: Recipient,
         message: Vec<u8>,
         connection_id: Option<u64>,
-        log_message_id: Option<u64>,
+        log_message_id: Option<u64>, // present (text message), or absent (binary message)
     ) -> Option<ServerResponse> {
         info!(
             "Attempting to send {:.2} kiB message to {recipient} on connection_id {connection_id:?}",
@@ -266,7 +266,7 @@ impl Handler {
     async fn handle_request(
         &mut self,
         request: ClientRequest,
-        log_message_id: Option<u64>,
+        log_message_id: Option<u64>, // present (text message), or absent (binary message)
     ) -> Option<ServerResponse> {
         match request {
             ClientRequest::Send {

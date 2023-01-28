@@ -61,8 +61,11 @@ pub struct MixPacket {
     next_hop: NymNodeRoutingAddress,
     sphinx_packet: SphinxPacket,
     packet_mode: PacketMode,
+    /// present (trying to send this to gateway), or absent (otherwise). Used to disambiguate between real, loop cover (real) and loop cover messages, since they are all converted into a MixPacket before sending to gateway.
     pub log_mix_packet_type: Option<LogMixPacketType>,
+    /// present (trying to send this to gateway), or absent (otherwise)
     pub log_message_id: Option<u64>,
+    /// present (trying to send this to gateway), or absent (otherwise)
     pub log_fragment_identifier: Option<FragmentIdentifier>,
 }
 
@@ -84,9 +87,9 @@ impl MixPacket {
         next_hop: NymNodeRoutingAddress,
         sphinx_packet: SphinxPacket,
         packet_mode: PacketMode,
-        log_mix_packet_type: Option<LogMixPacketType>,
-        log_message_id: Option<u64>,
-        log_fragment_identifier: Option<FragmentIdentifier>,
+        log_mix_packet_type: Option<LogMixPacketType>, // present (), or absent (otherwise; mix nodes / replies)
+        log_message_id: Option<u64>, // present (), or absent (otherwise; mix nodes / replies / loop cover / loop cover real)
+        log_fragment_identifier: Option<FragmentIdentifier>, // present (), or absent (otherwise; mix nodes replies / loop cover / loop cover real)
     ) -> Self {
         MixPacket {
             next_hop,

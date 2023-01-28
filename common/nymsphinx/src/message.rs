@@ -55,6 +55,7 @@ impl TryFrom<u8> for NymMessageType {
 #[derive(Debug)]
 pub struct PlainMessage {
     pub inner: Vec<u8>,
+    /// present (trying to send this to gateway), or absent (otherwise; replies / validators)
     pub log_message_id: Option<u64>,
 }
 
@@ -89,7 +90,10 @@ impl NymMessage {
         })
     }
 
-    pub fn new_plain(msg: Vec<u8>, log_message_id: Option<u64>) -> Self {
+    pub fn new_plain(
+        msg: Vec<u8>,
+        log_message_id: Option<u64>, // present (trying to send message to gateway), or absent (otherwise; validator)
+    ) -> Self {
         NymMessage::Plain(PlainMessage {
             inner: msg,
             log_message_id,
@@ -223,6 +227,7 @@ impl NymMessage {
 
 pub struct PaddedMessage {
     inner: Vec<u8>,
+    /// present (trying to send this to gateway), or absent (received from gateway)
     log_message_id: Option<u64>,
 }
 

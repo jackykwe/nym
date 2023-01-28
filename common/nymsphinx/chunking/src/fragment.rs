@@ -102,6 +102,10 @@ impl FragmentIdentifier {
             fragment_position: b[4],
         })
     }
+
+    pub fn log_print(&self) -> String {
+        format!("{}:{}", self.set_id, self.fragment_position)
+    }
 }
 
 /// The basic unit of division of underlying bytes message sent through the mix network.
@@ -112,6 +116,7 @@ impl FragmentIdentifier {
 pub struct Fragment {
     header: FragmentHeader,
     payload: Vec<u8>,
+    /// present (trying to send this to gateway), or absent (otherwise)
     pub log_message_id: Option<u64>,
 }
 
@@ -137,7 +142,7 @@ impl Fragment {
         previous_fragments_set_id: Option<i32>,
         next_fragments_set_id: Option<i32>,
         max_plaintext_size: usize,
-        log_message_id: Option<u64>,
+        log_message_id: Option<u64>, // from PaddedMessage: present (trying to send message to gateway), or absent (otherwise).
     ) -> Result<Self, ChunkingError> {
         let header = FragmentHeader::try_new(
             id,

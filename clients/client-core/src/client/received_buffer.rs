@@ -257,7 +257,7 @@ impl ReceivedMessagesBuffer {
                 ReplyMessageContent::Data { message } => reconstructed.push(
                     PlainMessage {
                         inner: message,
-                        log_message_id: None,
+                        log_message_id: None, // I'm not logging stuff related to replies yet
                     }
                     .into(),
                 ),

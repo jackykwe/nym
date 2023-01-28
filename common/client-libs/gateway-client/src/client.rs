@@ -729,16 +729,16 @@ impl GatewayClient {
         if let Some(log_mix_packet_type) = log_mix_packet_type {
             match log_mix_packet_type {
                 LogMixPacketType::LoopCover => {
-                    log::debug!("4(Rust: sending) <LOOP_COVER> [tM:{}]", t_m)
+                    log::debug!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER", t_m)
                 }
                 LogMixPacketType::LoopCoverReal => {
-                    log::debug!("4(Rust: sending) <LOOP_COVER_REAL> [tM:{}]", t_m)
+                    log::debug!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER_REAL", t_m)
                 }
                 LogMixPacketType::Real => log::info!(
-                    "4(Rust: sending) <{:?}:{:?}> [tM:{}]",
-                    log_message_id,
-                    log_fragment_identifier,
-                    t_m
+                    "tK=5 l=RustSendingGateway tM={} mId={} fId={}",
+                    t_m,
+                    log_message_id.unwrap(), // logging: expect always present for real messages
+                    log_fragment_identifier.unwrap().log_print() // logging: expect always present for real messages
                 ),
                 LogMixPacketType::RealWithReplySurb => todo!(),
                 LogMixPacketType::RealReply => todo!(),

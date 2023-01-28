@@ -141,7 +141,6 @@ where
             (self.average_packet_delay.as_millis() * self.num_mix_hops as u128) as u64,
         );
 
-        let log_message_id = fragment.log_message_id;
         let fragment_identifier = fragment.fragment_identifier();
 
         // create an ack
@@ -168,8 +167,10 @@ where
                 Default::default(),
                 // Some(LogMixPacketType::RealReply),
                 None, // I'm not logging stuff related to replies yet
-                log_message_id,
-                Some(fragment_identifier),
+                // log_message_id,
+                None, // I'm not logging stuff related to replies yet
+                // Some(fragment_identifier),
+                None, // I'm not logging stuff related to replies yet
             ),
             fragment_identifier,
         })

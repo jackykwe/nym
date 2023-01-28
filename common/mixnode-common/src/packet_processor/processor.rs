@@ -86,8 +86,8 @@ impl SphinxPacketProcessor {
             next_hop_address,
             packet,
             packet_mode,
-            None, // I'm not logging stuff happening at gateways
-            None, // I'm not logging stuff happening at gateways
+            None, // I'm not logging stuff happening at mix nodes
+            None, // I'm not logging stuff happening at mix nodes
             None, // I'm not logging stuff happening at mix nodes
         );
         Ok(MixProcessingResult::ForwardHop(mix_packet, Some(delay)))

@@ -10,6 +10,7 @@ use client_connections::{
 use futures::task::{Context, Poll};
 use futures::{Future, Stream, StreamExt};
 use log::*;
+use nix::sys::time::TimeValLike;
 use nymsphinx::acknowledgements::AckKey;
 use nymsphinx::addressing::clients::Recipient;
 use nymsphinx::chunking::fragment::FragmentIdentifier;
@@ -235,11 +236,16 @@ where
         self.sent_notifier.unbounded_send(frag_id).unwrap();
     }
 
-    async fn on_message(&mut self, next_message: StreamMessage) {
+    async fn on_message(&mut self, next_message: StreamMessage, dequeue_nanos: i64) {
         trace!("created new message");
 
         let (next_message, fragment_id) = match next_message {
             StreamMessage::Cover => {
+                log::info!(
+                    "tK=4 l=RustDequeued tM={} mId=LOOP_COVER_REAL",
+                    dequeue_nanos,
+                );
+
                 // TODO for way down the line: in very rare cases (during topology update) we might have
                 // to wait a really tiny bit before actually obtaining the permit hence messing with our
                 // poisson delay, but is it really a problem?
@@ -274,6 +280,19 @@ where
                 )
             }
             StreamMessage::Real(real_message) => {
+                log::info!(
+                    "tK=4 l=RustDequeued tM={} mId={} fId={}",
+                    dequeue_nanos,
+                    real_message
+                        .mix_packet
+                        .log_message_id
+                        .expect("Outgoing real message has no message ID"),
+                    real_message
+                        .mix_packet
+                        .log_fragment_identifier
+                        .expect("Outgoing real message has no fragment ID")
+                        .log_print(),
+                );
                 (real_message.mix_packet, Some(real_message.fragment_id))
             }
         };
@@ -549,11 +568,16 @@ where
                     _ = infrequent_status_timer.tick() => {
                         self.log_status_infrequent();
                     }
-                    next_message = self.next() => if let Some(next_message) = next_message {
-                        self.on_message(next_message).await;
-                    } else {
-                        log::trace!("OutQueueControl: Stopping since channel closed");
-                        break;
+                    next_message = self.next() => {
+                        let dequeue_nanos = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME)
+                            .unwrap()
+                            .num_nanoseconds();
+                        if let Some(next_message) = next_message {
+                            self.on_message(next_message, dequeue_nanos).await;
+                        } else {
+                            log::trace!("OutQueueControl: Stopping since channel closed");
+                            break;
+                        }
                     }
                 }
             }

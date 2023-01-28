@@ -570,10 +570,13 @@ where
             .num_nanoseconds();
         for message in &messages {
             log::info!(
-                "3(Rust: queuing) <{:?}:{}> [tM:{}]",
-                message.get_mix_packet().log_message_id,
-                message.get_fragment_id(),
-                t_m
+                "tK=3 l=RustQueuing tM={} mId={} fId={}",
+                t_m,
+                message
+                    .get_mix_packet()
+                    .log_message_id
+                    .expect("Outgoing real message has no message ID"),
+                message.get_fragment_id().log_print()
             );
         }
 

@@ -72,7 +72,7 @@ impl PacketRouter {
                 trace!("routing regular packet");
                 if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
                     log::info!(
-                        "tK=5 l=RustReceivedGateway_reg tM={} ufId={}",
+                        "tK=6 l=RustReceivedGateway_reg tM={} ufId={}",
                         log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
                         log_unassociated_fragment_id
                     );
@@ -87,7 +87,7 @@ impl PacketRouter {
                 trace!("routing extended8 packet");
                 if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
                     log::info!(
-                        "tK=5 l=RustReceivedGateway_ext8 tM={} ufId={}",
+                        "tK=6 l=RustReceivedGateway_ext8 tM={} ufId={}",
                         log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
                         log_unassociated_fragment_id
                     );
@@ -102,7 +102,7 @@ impl PacketRouter {
                 trace!("routing extended16 packet");
                 if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
                     log::info!(
-                        "tK=5 l=RustReceivedGateway_ext16 tM={} ufId={}",
+                        "tK=6 l=RustReceivedGateway_ext16 tM={} ufId={}",
                         log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
                         log_unassociated_fragment_id
                     );
@@ -117,7 +117,7 @@ impl PacketRouter {
                 trace!("routing extended32 packet");
                 if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
                     log::info!(
-                        "tK=5 l=RustReceivedGateway_ext32 tM={} ufId={}",
+                        "tK=6 l=RustReceivedGateway_ext32 tM={} ufId={}",
                         log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
                         log_unassociated_fragment_id
                     );
@@ -131,7 +131,7 @@ impl PacketRouter {
                 warn!("Received message of unexpected size. Probably from an outdated client... len: {}", received_packet.len());
                 if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
                     log::info!(
-                        "tK=5 l=RustReceivedGateway_UNEXP tM={} ufId={}",
+                        "tK=6 l=RustReceivedGateway_UNEXP tM={} ufId={}",
                         log_recv_nanos.unwrap(), // if log_unassociated_fragment_id is Some, then log_recv_nano also is Some
                         log_unassociated_fragment_id
                     );
