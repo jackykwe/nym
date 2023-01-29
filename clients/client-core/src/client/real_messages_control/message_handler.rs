@@ -484,8 +484,7 @@ where
                 topology,
                 &self.config.ack_key,
                 &recipient,
-                // Some(LogMixPacketType::RealRetransmission),
-                None, // I'm not logging stuff related to retransmissions yet
+                Some(LogMixPacketType::RealRetransmission),
             )
             .unwrap();
 
@@ -569,15 +568,39 @@ where
             .unwrap()
             .num_nanoseconds();
         for message in &messages {
-            log::info!(
-                "tK=3 l=RustQueuing tM={} mId={} fId={}",
-                t_m,
-                message
-                    .get_mix_packet()
-                    .log_message_id
-                    .expect("Outgoing real message has no message ID"),
-                message.get_fragment_id().log_print()
-            );
+            match message.get_mix_packet().log_mix_packet_type {
+                None => {}
+                Some(LogMixPacketType::LoopCover) => {
+                    panic!("Loop cover messages do not pass through this method")
+                }
+                Some(LogMixPacketType::LoopCoverReal) => {
+                    panic!("Loop cover real messages do not pass through this method")
+                }
+                Some(LogMixPacketType::Real) => {
+                    log::info!(
+                        "tK=3 l=RustQueuing tM={} mId={} fId={}",
+                        t_m,
+                        message
+                            .get_mix_packet()
+                            .log_message_id
+                            .expect("Outgoing real message has no message ID"),
+                        message.get_fragment_id().log_print()
+                    );
+                }
+                Some(LogMixPacketType::RealReply) => todo!(),
+                Some(LogMixPacketType::RealRetransmission) => {
+                    log::info!(
+                        "tK=3 l=RustQueuingRetransmit tM={} mId={} fId={}",
+                        t_m,
+                        message
+                            .get_mix_packet()
+                            .log_message_id
+                            .expect("Outgoing retransmitted real message has no message ID"),
+                        message.get_fragment_id().log_print()
+                    );
+                }
+                Some(LogMixPacketType::RealWithReplySurb) => todo!(),
+            }
         }
 
         self.real_message_sender

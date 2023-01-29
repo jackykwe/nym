@@ -726,24 +726,28 @@ impl GatewayClient {
         let t_m = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME)
             .unwrap()
             .num_nanoseconds();
-        if let Some(log_mix_packet_type) = log_mix_packet_type {
-            match log_mix_packet_type {
-                LogMixPacketType::LoopCover => {
-                    log::debug!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER", t_m)
-                }
-                LogMixPacketType::LoopCoverReal => {
-                    log::debug!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER_REAL", t_m)
-                }
-                LogMixPacketType::Real => log::info!(
-                    "tK=5 l=RustSendingGateway tM={} mId={} fId={}",
-                    t_m,
-                    log_message_id.unwrap(), // logging: expect always present for real messages
-                    log_fragment_identifier.unwrap().log_print() // logging: expect always present for real messages
-                ),
-                LogMixPacketType::RealWithReplySurb => todo!(),
-                LogMixPacketType::RealReply => todo!(),
-                LogMixPacketType::RealRetransmission => todo!(),
+        match log_mix_packet_type {
+            None => {}
+            Some(LogMixPacketType::LoopCover) => {
+                log::debug!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER", t_m)
             }
+            Some(LogMixPacketType::LoopCoverReal) => {
+                log::debug!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER_REAL", t_m)
+            }
+            Some(LogMixPacketType::Real) => log::info!(
+                "tK=5 l=RustSendingGateway tM={} mId={} fId={}",
+                t_m,
+                log_message_id.unwrap(), // logging: expect always present for real messages
+                log_fragment_identifier.unwrap().log_print() // logging: expect always present for real messages
+            ),
+            Some(LogMixPacketType::RealWithReplySurb) => todo!(),
+            Some(LogMixPacketType::RealReply) => todo!(),
+            Some(LogMixPacketType::RealRetransmission) => log::info!(
+                "tK=5 l=RustSendingGatewayRetransmit tM={} mId={} fId={}",
+                t_m,
+                log_message_id.unwrap(), // logging: expect always present for real messages
+                log_fragment_identifier.unwrap().log_print() // logging: expect always present for real messages
+            ),
         }
         self.send_with_reconnection_on_failure(msg).await
     }

@@ -280,19 +280,43 @@ where
                 )
             }
             StreamMessage::Real(real_message) => {
-                log::info!(
-                    "tK=4 l=RustDequeued tM={} mId={} fId={}",
-                    dequeue_nanos,
-                    real_message
-                        .mix_packet
-                        .log_message_id
-                        .expect("Outgoing real message has no message ID"),
-                    real_message
-                        .mix_packet
-                        .log_fragment_identifier
-                        .expect("Outgoing real message has no fragment ID")
-                        .log_print(),
-                );
+                match real_message.get_mix_packet().log_mix_packet_type {
+                    None => {}
+                    Some(LogMixPacketType::LoopCover) => {
+                        panic!("Impossible here")
+                    }
+                    Some(LogMixPacketType::LoopCoverReal) => {
+                        panic!("Impossible here")
+                    }
+                    Some(LogMixPacketType::Real) => log::info!(
+                        "tK=4 l=RustDequeued tM={} mId={} fId={}",
+                        dequeue_nanos,
+                        real_message
+                            .mix_packet
+                            .log_message_id
+                            .expect("Outgoing real message has no message ID"),
+                        real_message
+                            .mix_packet
+                            .log_fragment_identifier
+                            .expect("Outgoing real message has no fragment ID")
+                            .log_print(),
+                    ),
+                    Some(LogMixPacketType::RealWithReplySurb) => todo!(),
+                    Some(LogMixPacketType::RealReply) => todo!(),
+                    Some(LogMixPacketType::RealRetransmission) => log::info!(
+                        "tK=4 l=RustDequeuedRetransmit tM={} mId={} fId={}",
+                        dequeue_nanos,
+                        real_message
+                            .mix_packet
+                            .log_message_id
+                            .expect("Outgoing real message has no message ID"),
+                        real_message
+                            .mix_packet
+                            .log_fragment_identifier
+                            .expect("Outgoing real message has no fragment ID")
+                            .log_print(),
+                    ),
+                }
                 (real_message.mix_packet, Some(real_message.fragment_id))
             }
         };
