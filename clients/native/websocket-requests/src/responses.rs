@@ -143,6 +143,7 @@ impl ServerResponse {
         Ok(ServerResponse::Received(ReconstructedMessage {
             message: message.to_vec(),
             sender_tag,
+            log_associator_unassociated_fragment_id: None, // I'm not logging stuff happening at service providers (socks5) yet
         }))
     }
 

@@ -571,10 +571,12 @@ where
             match message.get_mix_packet().log_mix_packet_type {
                 None => {}
                 Some(LogMixPacketType::LoopCover) => {
-                    panic!("Loop cover messages do not pass through this method")
+                    log::error!("Loop cover messages do not pass through this method");
+                    panic!();
                 }
                 Some(LogMixPacketType::LoopCoverReal) => {
-                    panic!("Loop cover real messages do not pass through this method")
+                    log::error!("Loop cover messages do not pass through this method");
+                    panic!();
                 }
                 Some(LogMixPacketType::Real) => {
                     log::info!(

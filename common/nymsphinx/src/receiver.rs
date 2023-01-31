@@ -27,6 +27,9 @@ pub struct ReconstructedMessage {
     /// Optional ephemeral sender tag indicating pseudo-identity of the party who sent us the message
     /// (alongside any reply SURBs)
     pub sender_tag: Option<AnonymousSenderTag>,
+
+    /// present (received this from gateway, native client), or absent (otherwise; socks5 client)
+    pub log_associator_unassociated_fragment_id: Option<u64>,
 }
 
 impl From<ReconstructedMessage> for (Vec<u8>, Option<AnonymousSenderTag>) {
@@ -40,6 +43,7 @@ impl ReconstructedMessage {
         Self {
             message,
             sender_tag: Some(sender_tag),
+            log_associator_unassociated_fragment_id: None, // I'm not logging stuff related to replies yet
         }
     }
 
@@ -53,6 +57,13 @@ impl From<PlainMessage> for ReconstructedMessage {
         ReconstructedMessage {
             message: message.inner,
             sender_tag: None,
+            log_associator_unassociated_fragment_id: Some(
+                // I assume that PlainMessages represent fully reconstructed messages, reconstructed
+                // after receiving fragments from the gateway, and so always have a
+                // log_associator_unassociated_fragment_id. This function is invoked via the
+                // automatically generated Into trait in handle_reconstructed_plain_messages().
+                message.log_associator_unassociated_fragment_id.unwrap(),
+            ),
         }
     }
 }
@@ -143,8 +154,15 @@ impl MessageReceiver {
     }
 
     /// Given fragment data recovers [`Fragment`] itself.
-    pub fn recover_fragment(&self, frag_data: &[u8]) -> Result<Fragment, MessageRecoveryError> {
-        Ok(Fragment::try_from_bytes(frag_data)?)
+    pub fn recover_fragment(
+        &self,
+        frag_data: &[u8],
+        log_unassociated_fragment_id: Option<u64>, // present (received message from gateway), or absent (received control response / reply / validator)
+    ) -> Result<Fragment, MessageRecoveryError> {
+        Ok(Fragment::try_from_bytes(
+            frag_data,
+            log_unassociated_fragment_id,
+        )?)
     }
 
     /// Inserts given [`Fragment`] into the reconstructor.
@@ -158,8 +176,19 @@ impl MessageReceiver {
         &mut self,
         fragment: Fragment,
     ) -> Result<Option<(NymMessage, Vec<i32>)>, MessageRecoveryError> {
+        // Assumes that fragment's log_unassociated_fragment_id is Some.
+
+        let log_unassociated_fragment_id = fragment.log_unassociated_fragment_id.unwrap();
         if let Some((message, used_sets)) = self.reconstructor.insert_new_fragment(fragment) {
-            match PaddedMessage::new_reconstructed(message).remove_padding(self.num_mix_hops) {
+            // The ufId of the last fragment added into the FragmentSet which then causes
+            // the entire FragmentSets chain to be reconstructed to a ReconstructedMessage
+            // is deemed the associator ufId (aufId). This is used as the associator that
+            // link together fragments instead of the FragmentSet IDs, because this is
+            // guaranteed to be unique for a given measurement session, while FragmentSet
+            // IDs may clash with non-zero probability during a given measurement session.
+            match PaddedMessage::new_reconstructed(message)
+                .remove_padding(self.num_mix_hops, log_unassociated_fragment_id)
+            {
                 Ok(message) => Ok(Some((message, used_sets))),
                 Err(err) => Err(MessageRecoveryError::MalformedReconstructedMessage {
                     source: err,

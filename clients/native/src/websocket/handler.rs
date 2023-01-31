@@ -371,6 +371,23 @@ impl Handler {
         &mut self,
         reconstructed_messages: Vec<ReconstructedMessage>,
     ) -> Result<(), WsError> {
+        // Following this assumption (verbatim from common/nymsphinx/src/receiver.rs)
+        //     I assume that PlainMessages represent fully reconstructed messages, reconstructed
+        //     after receiving fragments from the gateway, and so always have a
+        //     log_associator_unassociated_fragment_id. This function is invoked via the
+        //     automatically generated Into trait in handle_reconstructed_plain_messages().
+        // ReconstructedMessages received here are constructed from PlainMessages that satisfy the
+        // above assumption. Therefore, the ReconstructedMessages here also always have a
+        // log_associator_unassociated_fragment_id. (*)
+        let associator_unassociated_fragment_ids = reconstructed_messages
+            .iter()
+            .map(|reconstructed_message| {
+                reconstructed_message
+                    .log_associator_unassociated_fragment_id
+                    .unwrap() // see (*)
+            })
+            .collect::<Vec<_>>();
+
         // TODO: later there might be a flag on the reconstructed message itself to tell us
         // if it's text or binary, but for time being we use the naive assumption that if
         // client is sending Message::Text it expects text back. Same for Message::Binary
@@ -379,16 +396,28 @@ impl Handler {
             ReceivedResponseType::Text => prepare_reconstructed_text(reconstructed_messages),
         };
 
-        // let t_m = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME)
-        //     .unwrap()
-        //     .num_nanoseconds();
-
         let mut send_stream = futures::stream::iter(response_messages);
-        self.socket
+
+        let t_m = nix::time::clock_gettime(nix::time::ClockId::CLOCK_BOOTTIME)
+            .unwrap()
+            .num_nanoseconds();
+
+        let result = self
+            .socket
             .as_mut()
             .unwrap()
             .send_all(&mut send_stream)
-            .await
+            .await;
+
+        for associator_unassociated_fragment_id in associator_unassociated_fragment_ids {
+            log::info!(
+                "tK=7 l=RustSendingKotlin tM={} aufId={}",
+                t_m,
+                associator_unassociated_fragment_id
+            );
+        }
+
+        result
     }
 
     async fn send_websocket_response(&mut self, msg: WsMessage) -> Result<(), WsError> {
@@ -484,8 +513,27 @@ fn prepare_reconstructed_binary(
 ) -> Vec<Result<WsMessage, WsError>> {
     reconstructed_messages
         .into_iter()
-        .map(ServerResponse::Received)
-        .map(|resp| Ok(WsMessage::Binary(resp.into_binary())))
+        .map(|reconstructed_message| {
+            (
+                // Following this assumption (verbatim from common/nymsphinx/src/receiver.rs)
+                //     I assume that PlainMessages represent fully reconstructed messages, reconstructed
+                //     after receiving fragments from the gateway, and so always have a
+                //     log_associator_unassociated_fragment_id. This function is invoked via the
+                //     automatically generated Into trait in handle_reconstructed_plain_messages().
+                // ReconstructedMessages received here are constructed from PlainMessages that satisfy the
+                // above assumption. Therefore, the ReconstructedMessages here also always have a
+                // log_associator_unassociated_fragment_id. (*)
+                reconstructed_message
+                    .log_associator_unassociated_fragment_id
+                    .unwrap(),
+                ServerResponse::Received(reconstructed_message),
+            )
+        })
+        .map(|(log_aufid, resp)| {
+            let mut message = log_aufid.to_string().into_bytes();
+            message.extend(resp.into_binary());
+            Ok(WsMessage::Binary(message))
+        })
         .collect()
 }
 
@@ -496,7 +544,26 @@ fn prepare_reconstructed_text(
 ) -> Vec<Result<WsMessage, WsError>> {
     reconstructed_messages
         .into_iter()
-        .map(ServerResponse::Received)
-        .map(|resp| Ok(WsMessage::Text(resp.into_text())))
+        .map(|reconstructed_message| {
+            (
+                // Following this assumption (verbatim from common/nymsphinx/src/receiver.rs)
+                //     I assume that PlainMessages represent fully reconstructed messages, reconstructed
+                //     after receiving fragments from the gateway, and so always have a
+                //     log_associator_unassociated_fragment_id. This function is invoked via the
+                //     automatically generated Into trait in handle_reconstructed_plain_messages().
+                // ReconstructedMessages received here are constructed from PlainMessages that satisfy the
+                // above assumption. Therefore, the ReconstructedMessages here also always have a
+                // log_associator_unassociated_fragment_id. (*)
+                reconstructed_message
+                    .log_associator_unassociated_fragment_id
+                    .unwrap(),
+                ServerResponse::Received(reconstructed_message),
+            )
+        })
+        .map(|(log_aufid, resp)| {
+            let mut message = log_aufid.to_string();
+            message.push_str(&resp.into_text());
+            Ok(WsMessage::Text(message))
+        })
         .collect()
 }

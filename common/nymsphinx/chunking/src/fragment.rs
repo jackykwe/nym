@@ -118,6 +118,8 @@ pub struct Fragment {
     payload: Vec<u8>,
     /// present (trying to send this to gateway), or absent (otherwise)
     pub log_message_id: Option<u64>,
+    /// present (received this from gateway, and deemed to be NOT an ACK/loop cover/loop cover real message), or absent (otherwise; received control response / reply / validator)
+    pub log_unassociated_fragment_id: Option<u64>,
 }
 
 // manual implementation to hide detailed payload that we don't care about
@@ -196,6 +198,7 @@ impl Fragment {
             header,
             payload: payload.to_vec(),
             log_message_id,
+            log_unassociated_fragment_id: None, // try_new() is only called when constructing fragments to be set TO the gateway, while unassociated fragment IDs are used after receiving fragments FROM the gateway
         })
     }
 
@@ -251,7 +254,10 @@ impl Fragment {
     /// Tries to recover `Fragment` from slice of bytes extracted from received sphinx packet.
     /// It can fail if payload would not fully fit in a single `Fragment` or some of the metadata
     /// is malformed or self-contradictory, for example if current_fragment > total_fragments.
-    pub fn try_from_bytes(b: &[u8]) -> Result<Self, ChunkingError> {
+    pub fn try_from_bytes(
+        b: &[u8],
+        log_unassociated_fragment_id: Option<u64>, // present (received message from gateway), or absent (received control response / reply / validator)
+    ) -> Result<Self, ChunkingError> {
         let (header, n) = FragmentHeader::try_from_bytes(b)?;
 
         // there's no sane way to decide if payload has correct range anymore as
@@ -260,7 +266,8 @@ impl Fragment {
         Ok(Fragment {
             header,
             payload: b[n..].to_vec(),
-            log_message_id: None, // TODO: handle logging incoming packets
+            log_message_id: None, // try_from_bytes() is only called when reconstructing fragments received FROM the gateway, while log_message_id is used when constructing fragments to be sent TO the gateway
+            log_unassociated_fragment_id,
         })
     }
 }
