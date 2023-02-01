@@ -31,9 +31,6 @@ struct ReconstructionBuffer {
     /// appropriately resized and all missing fragments are set to a `None`, thus keeping
     /// everything in order the whole time, allowing for O(1) insertions and O(n) reconstruction.
     fragments: Vec<Option<Fragment>>,
-
-    /// Following signature of the fragments field for optimisation purposes.
-    pub log_unassociated_fragment_ids: Vec<Option<u64>>,
 }
 
 /// Type alias representing fully reconstructed message - its original data and list of all
@@ -54,39 +51,24 @@ impl ReconstructionBuffer {
         let mut fragments_buffer = Vec::new();
         fragments_buffer.resize(size as usize, None);
 
-        let mut log_unassociated_fragment_ids_buffer = Vec::new();
-        log_unassociated_fragment_ids_buffer.resize(size as usize, None);
-
         ReconstructionBuffer {
             is_complete: false,
             previous_fragments_set_id: None,
             next_fragments_set_id: None,
             fragments: fragments_buffer,
-            log_unassociated_fragment_ids: log_unassociated_fragment_ids_buffer,
         }
     }
 
     /// After receiving all data, consumes `self` in order to recover original data
     /// encapsulated in this particular set.
-    fn reconstruct_set_data(
-        self,
-        log_associator_unassociated_fragment_id: u64, // The ufId of the last fragment added into the FragmentSet which then causes the entire chain to be reconstructed to a ReconstructedMessage is deemed the associator ufId (aufId). This is used as the associator that link together fragments instead of the FragmentSet IDs, because this is guaranteed to be unique for a given measurement session, while FragmentSet IDs may clash with non-zero probability during a given measurement session.
-    ) -> Vec<u8> {
+    fn reconstruct_set_data(self) -> Vec<u8> {
         // Note: `reconstruct_set_data` is never called without first explicitly checking
         // if the set is complete.
         debug_assert!(self.is_complete);
 
         self.fragments
             .into_iter()
-            .map(|fragment| {
-                let fragment = fragment.unwrap();
-                log::info!(
-                    "tK=c l=ASSOCIATE aufId={} ufId={}", // c for cleanup
-                    log_associator_unassociated_fragment_id,
-                    fragment.log_unassociated_fragment_id.unwrap() // existence was checked earlier, when inserting into ReconstructionBuffer
-                );
-                fragment.extract_payload()
-            })
+            .map(|fragment| fragment.unwrap().extract_payload())
             .flat_map(|fragment_data| fragment_data.into_iter())
             .collect()
     }
@@ -134,18 +116,7 @@ impl ReconstructionBuffer {
             );
         }
 
-        let log_unassociated_fragment_id_option = fragment.log_unassociated_fragment_id;
         self.fragments[fragment_index] = Some(fragment);
-        match log_unassociated_fragment_id_option {
-            None => {
-                log::error!("Attempting to reconstruct a FragmentSet where some of its fragments do not have a ufId");
-                panic!();
-            }
-            Some(log_unassociated_fragment_id) => {
-                self.log_unassociated_fragment_ids[fragment_index] =
-                    Some(log_unassociated_fragment_id);
-            }
-        }
         if self.is_done_receiving() {
             self.is_complete = true;
             self.previous_fragments_set_id = self.fragments[0]
@@ -265,16 +236,12 @@ impl MessageReconstructor {
 
     /// Given id of a set, consume its buffer and reconstruct the original payload.
     /// Note, before you call this method, you *must* ensure set was fully received
-    fn extract_set_payload(
-        &mut self,
-        set_id: i32,
-        log_associator_unassociated_fragment_id: u64, // The ufId of the last fragment added into the FragmentSet which then causes the entire chain to be reconstructed to a ReconstructedMessage is deemed the associator ufId (aufId). This is used as the associator that link together fragments instead of the FragmentSet IDs, because this is guaranteed to be unique for a given measurement session, while FragmentSet IDs may clash with non-zero probability during a given measurement session.
-    ) -> Vec<u8> {
+    fn extract_set_payload(&mut self, set_id: i32) -> Vec<u8> {
         debug_assert!(self.is_set_fully_received(set_id));
         self.reconstructed_sets
             .remove(&set_id)
             .unwrap()
-            .reconstruct_set_data(log_associator_unassociated_fragment_id)
+            .reconstruct_set_data()
     }
 
     // Future consideration: perhaps for long messages, rather than return whole data allocated
@@ -282,11 +249,7 @@ impl MessageReconstructor {
     /// Given id of *any* one of the sets into which message was divided,
     /// reconstruct the entire original message.
     /// Note, before you call this method, you *must* ensure all sets were fully received
-    fn reconstruct_message(
-        &mut self,
-        set_id: i32,
-        log_associator_unassociated_fragment_id: u64, // The ufId of the last fragment added into the FragmentSet which then causes the entire chain to be reconstructed to a ReconstructedMessage is deemed the associator ufId (aufId). This is used as the associator that link together fragments instead of the FragmentSet IDs, because this is guaranteed to be unique for a given measurement session, while FragmentSet IDs may clash with non-zero probability during a given measurement session.
-    ) -> ReconstructedMessage {
+    fn reconstruct_message(&mut self, set_id: i32) -> ReconstructedMessage {
         debug_assert!(self.is_message_fully_received(set_id));
         let starting_id = self.find_starting_set_id(set_id).unwrap();
         let set_id_sequence: Vec<_> =
@@ -294,7 +257,7 @@ impl MessageReconstructor {
 
         let message_content: Vec<_> = set_id_sequence
             .iter()
-            .map(|&id| self.extract_set_payload(id, log_associator_unassociated_fragment_id))
+            .map(|&id| self.extract_set_payload(id))
             .flat_map(|payload| payload.into_iter())
             .collect();
 
@@ -314,25 +277,9 @@ impl MessageReconstructor {
             .entry(set_id)
             .or_insert_with(|| ReconstructionBuffer::new(set_len));
 
-        // Assumes that fragment's log_unassociated_fragment_id is Some.
-        let log_unassociated_fragment_id = fragment.log_unassociated_fragment_id;
         buf.insert_fragment(fragment);
         if self.is_message_fully_received(set_id) {
-            match log_unassociated_fragment_id {
-                None => {
-                    log::error!("Attempting to reconstruct a FragmentSet where some of its fragments do not have a ufId");
-                    panic!();
-                }
-                Some(log_associator_unassociated_fragment_id) => {
-                    // The ufId of the last fragment added into the FragmentSet which then causes
-                    // the entire FragmentSets chain to be reconstructed to a ReconstructedMessage
-                    // is deemed the associator ufId (aufId). This is used as the associator that
-                    // link together fragments instead of the FragmentSet IDs, because this is
-                    // guaranteed to be unique for a given measurement session, while FragmentSet
-                    // IDs may clash with non-zero probability during a given measurement session.
-                    Some(self.reconstruct_message(set_id, log_associator_unassociated_fragment_id))
-                }
-            }
+            Some(self.reconstruct_message(set_id))
         } else {
             None
         }
@@ -345,10 +292,7 @@ impl MessageReconstructor {
         log::error!("This method is only called from tests, but is called in normal operation.");
         panic!("This method is only called from tests");
         #[allow(unreachable_code)]
-        Fragment::try_from_bytes(
-            &fragment_data,
-            None, // this definition of recover_fragment() is only called from tests
-        )
+        Fragment::try_from_bytes(&fragment_data)
     }
 }
 

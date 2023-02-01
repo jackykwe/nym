@@ -308,7 +308,6 @@ impl GatewayClient {
                                     if let Err(err) = self.packet_router.route_received(
                                         vec![plaintext],
                                         None, // I'm not logging stuff related to control responses
-                                        None // I'm not logging stuff related to control responses
                                     ) {
                                         log::warn!("Route received failed: {:?}", err);
                                     }
@@ -316,7 +315,6 @@ impl GatewayClient {
                             } else if let Err(err) = self.packet_router.route_received(
                                 vec![bin_msg],
                                 None, // I'm not logging stuff related to control responses
-                                None // I'm not logging stuff related to control responses
                             ) {
                                 log::warn!("Route received failed: {:?}", err);
                             }
@@ -729,10 +727,10 @@ impl GatewayClient {
         match log_mix_packet_type {
             None => {}
             Some(LogMixPacketType::LoopCover) => {
-                log::debug!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER", t_m)
+                log::info!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER", t_m)
             }
             Some(LogMixPacketType::LoopCoverReal) => {
-                log::debug!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER_REAL", t_m)
+                log::info!("tK=5 l=RustSendingGateway tM={} mId=LOOP_COVER_REAL", t_m)
             }
             Some(LogMixPacketType::Real) => log::info!(
                 "tK=5 l=RustSendingGateway tM={} mId={} fId={}",

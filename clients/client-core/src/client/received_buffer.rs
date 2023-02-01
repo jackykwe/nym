@@ -50,7 +50,7 @@ impl ReceivedMessagesBufferInner {
     fn recover_from_fragment(
         &mut self,
         fragment_data: &[u8],
-        log_unassociated_fragment_id: Option<u64>, // present (received message from gateway), or absent (received control response / reply)
+        log_recv_nanos: Option<i64>, // present (received message from gateway), or absent (received control response / reply)
     ) -> Option<NymMessage> {
         if nymsphinx::cover::is_cover(fragment_data) {
             trace!("The message was a loop cover message! Skipping it");
@@ -60,32 +60,30 @@ impl ReceivedMessagesBufferInner {
             // during setup) passed through this method,
             // ! TODO IMPT: std:err is still lost: .expect() and panic!() won't show up in Android
             // ! Studio. Need to use log::error explicitly.
-            if let Some(log_unassociated_fragment_id) = log_unassociated_fragment_id {
+            if let Some(log_recv_nanos) = log_recv_nanos {
                 log::info!(
-                    "tK=c l=LOOP_COVER/LOOP_COVER_REAL ufId={}",
-                    log_unassociated_fragment_id
+                    "tK=6 l=RustReceivedGateway tM={} fId=LOOP_COVER/LOOP_COVER_REAL",
+                    log_recv_nanos
                 );
-            } else {
-                log::error!("recover_from_fragment encountered message without ufId: presumably a control response?")
             }
             return None;
         }
 
-        // It should be fair to assume from here on that log_unassociated_fragment_id is Some.
-        // If not (e.g. in the future when logging reply stuffs), need to change all such
-        // assumptions through the execution sequence. (e.g. turning u64s into Option<u64>s)
-        // CTRL+F in project: "Assumes that fragment's log_unassociated_fragment_id is Some"
-
-        let fragment = match self
-            .message_receiver
-            .recover_fragment(fragment_data, log_unassociated_fragment_id)
-        {
+        let fragment = match self.message_receiver.recover_fragment(fragment_data) {
             Err(err) => {
                 warn!("failed to recover fragment from raw data: {err}. The whole underlying message might be corrupted and unrecoverable!");
                 return None;
             }
             Ok(frag) => frag,
         };
+
+        if let Some(log_recv_nanos) = log_recv_nanos {
+            log::info!(
+                "tK=6 l=RustReceivedGateway tM={} fId={}",
+                log_recv_nanos,
+                fragment.fragment_identifier().log_print()
+            )
+        }
 
         if self.recently_reconstructed.contains(&fragment.id()) {
             debug!("Received a chunk of already re-assembled message ({:?})! It probably got here because the ack got lost", fragment.id());
@@ -144,7 +142,7 @@ impl ReceivedMessagesBufferInner {
     fn process_received_regular_packet(
         &mut self,
         mut raw_fragment: Vec<u8>,
-        log_unassociated_fragment_id: Option<u64>, // present (received message from gateway), or absent (received control response)
+        log_recv_nanos: Option<i64>, // present (received message from gateway), or absent (received control response)
     ) -> Option<NymMessage> {
         let fragment_data = match self.message_receiver.recover_plaintext_from_regular_packet(
             self.local_encryption_keypair.private_key(),
@@ -157,7 +155,7 @@ impl ReceivedMessagesBufferInner {
             Ok(frag_data) => frag_data,
         };
 
-        self.recover_from_fragment(fragment_data, log_unassociated_fragment_id)
+        self.recover_from_fragment(fragment_data, log_recv_nanos)
     }
 }
 
@@ -291,7 +289,6 @@ impl ReceivedMessagesBuffer {
                     PlainMessage {
                         inner: message,
                         log_message_id: None, // I'm not logging stuff related to replies yet
-                        log_associator_unassociated_fragment_id: None, // I'm not logging stuff related to replies yet
                     }
                     .into(),
                 ),
@@ -310,7 +307,6 @@ impl ReceivedMessagesBuffer {
             return;
         }
 
-        // FIND OUT WHERE TO PUT T7.
         let mut plain_messages = Vec::new();
         let mut repliable_messages = Vec::new();
         let mut reply_messages = Vec::new();
@@ -384,14 +380,12 @@ impl ReceivedMessagesBuffer {
         for mut msg in msgs {
             // check first `HasherOutputSize` bytes if they correspond to known encryption key
             // if yes - this is a reply message
-            let completed_message = if let Some((reply_key, reply_message)) =
-                self.get_reply_key(&mut msg.inner)
-            {
-                inner_guard.process_received_reply(reply_message, reply_key)
-            } else {
-                inner_guard
-                    .process_received_regular_packet(msg.inner, msg.log_unassociated_fragment_id)
-            };
+            let completed_message =
+                if let Some((reply_key, reply_message)) = self.get_reply_key(&mut msg.inner) {
+                    inner_guard.process_received_reply(reply_message, reply_key)
+                } else {
+                    inner_guard.process_received_regular_packet(msg.inner, msg.log_recv_nanos)
+                };
 
             if let Some(completed) = completed_message {
                 info!("received {completed}");

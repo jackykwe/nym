@@ -57,8 +57,6 @@ pub struct PlainMessage {
     pub inner: Vec<u8>,
     /// present (trying to send this to gateway), or absent (otherwise; replies / validators)
     pub log_message_id: Option<u64>,
-    /// present (received this from gateway), or absent (otherwise)
-    pub log_associator_unassociated_fragment_id: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -99,7 +97,6 @@ impl NymMessage {
         NymMessage::Plain(PlainMessage {
             inner: msg,
             log_message_id,
-            log_associator_unassociated_fragment_id: None,
         })
     }
 
@@ -160,11 +157,7 @@ impl NymMessage {
             .collect()
     }
 
-    fn try_from_bytes(
-        bytes: &[u8],
-        num_mix_hops: u8,
-        log_associator_unassociated_fragment_id: u64, // The ufId of the last fragment added into the FragmentSet which then causes the entire chain to be reconstructed to a ReconstructedMessage is deemed the associator ufId (aufId). This is used as the associator that link together fragments instead of the FragmentSet IDs, because this is guaranteed to be unique for a given measurement session, while FragmentSet IDs may clash with non-zero probability during a given measurement session.
-    ) -> Result<Self, NymMessageError> {
+    fn try_from_bytes(bytes: &[u8], num_mix_hops: u8) -> Result<Self, NymMessageError> {
         if bytes.is_empty() {
             return Err(NymMessageError::EmptyMessage);
         }
@@ -174,9 +167,6 @@ impl NymMessage {
             NymMessageType::Plain => Ok(NymMessage::Plain(PlainMessage {
                 inner: bytes[1..].to_vec(),
                 log_message_id: None,
-                log_associator_unassociated_fragment_id: Some(
-                    log_associator_unassociated_fragment_id,
-                ),
             })),
             NymMessageType::Repliable => Ok(NymMessage::Repliable(
                 RepliableMessage::try_from_bytes(&bytes[1..], num_mix_hops)?,
@@ -263,19 +253,11 @@ impl PaddedMessage {
     }
 
     // reverse of NymMessage::pad_to_full_packet_lengths
-    pub fn remove_padding(
-        self,
-        num_mix_hops: u8,
-        log_associator_unassociated_fragment_id: u64, // The ufId of the last fragment added into the FragmentSet which then causes the entire chain to be reconstructed to a ReconstructedMessage is deemed the associator ufId (aufId). This is used as the associator that link together fragments instead of the FragmentSet IDs, because this is guaranteed to be unique for a given measurement session, while FragmentSet IDs may clash with non-zero probability during a given measurement session.
-    ) -> Result<NymMessage, NymMessageError> {
+    pub fn remove_padding(self, num_mix_hops: u8) -> Result<NymMessage, NymMessageError> {
         // we are looking for first occurrence of 1 in the tail and we get its index
         if let Some(padding_end) = self.inner.iter().rposition(|b| *b == 1) {
             // and now we only take bytes until that point (but not including it)
-            NymMessage::try_from_bytes(
-                &self.inner[..padding_end],
-                num_mix_hops,
-                log_associator_unassociated_fragment_id,
-            )
+            NymMessage::try_from_bytes(&self.inner[..padding_end], num_mix_hops)
         } else {
             Err(NymMessageError::InvalidMessagePadding)
         }

@@ -45,7 +45,8 @@ impl MixTrafficController {
             let mix_packet = mix_packets.pop().unwrap();
             self.gateway_client.send_mix_packet(mix_packet).await
         } else {
-            panic!("tried to batch send mix packets: unexpected"); // No logging code is written for this branch. I could not deduce any execution sequence that executes this branch. Panic if it happens.
+            log::error!("tried to batch send mix packets: unexpected");
+            panic!(); // No logging code is written for this branch. I could not deduce any execution sequence that executes this branch. Panic if it happens.
             #[allow(unreachable_code)]
             self.gateway_client
                 .batch_send_mix_packets(mix_packets)

@@ -84,9 +84,7 @@ impl ReceivedProcessorInner {
             .map_err(|_| ProcessingError::MalformedPacketReceived)?;
         let fragment = self
             .message_receiver
-            .recover_fragment(
-                plaintext, None, // I'm not logging stuff happening at validators
-            )
+            .recover_fragment(plaintext)
             .map_err(|_| ProcessingError::MalformedPacketReceived)?;
         let (recovered, _) = self
             .message_receiver
