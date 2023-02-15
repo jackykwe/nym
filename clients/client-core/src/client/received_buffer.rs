@@ -91,7 +91,10 @@ impl ReceivedMessagesBufferInner {
         }
 
         // if we returned an error the underlying message is malformed in some way
-        match self.message_receiver.insert_new_fragment(fragment) {
+        match self
+            .message_receiver
+            .insert_new_fragment(fragment, log_recv_nanos)
+        {
             Err(err) => match err {
                 MessageRecoveryError::MalformedReconstructedMessage { source, used_sets } => {
                     error!("message reconstruction failed - {source}. Attempting to re-use the message sets...");

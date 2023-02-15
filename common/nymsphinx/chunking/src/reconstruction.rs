@@ -92,7 +92,11 @@ impl ReconstructionBuffer {
     /// done receiving and if so, the auxiliary data fields, i.e. `is_complete`,
     /// `previous_fragments_set_id` and `next_fragments_set_id` are set for the ease
     /// of access.
-    fn insert_fragment(&mut self, fragment: Fragment) {
+    fn insert_fragment(
+        &mut self,
+        fragment: Fragment,
+        log_recv_nanos: Option<i64>, // present if run on native client, absent otherwise (validator)
+    ) {
         // all fragments in the buffer should always have the same id as before inserting an element,
         // the correct buffer instance is looked up based on the fragment to be inserted.
         debug_assert!({
@@ -116,6 +120,13 @@ impl ReconstructionBuffer {
             );
         }
 
+        if let Some(log_recv_nanos) = log_recv_nanos {
+            log::info!(
+                "Inserting into fragment set fId={} received (tK=6) at time tM={}",
+                fragment.fragment_identifier().log_print(),
+                log_recv_nanos
+            );
+        }
         self.fragments[fragment_index] = Some(fragment);
         if self.is_done_receiving() {
             self.is_complete = true;
@@ -268,7 +279,11 @@ impl MessageReconstructor {
     /// If a buffer does not exist, a new instance is created.
     /// If it was last remaining `Fragment` for the original message, the message is reconstructed
     /// and returned alongside all (if applicable) set ids used in the message.
-    pub fn insert_new_fragment(&mut self, fragment: Fragment) -> Option<ReconstructedMessage> {
+    pub fn insert_new_fragment(
+        &mut self,
+        fragment: Fragment,
+        log_recv_nanos: Option<i64>, // present (received message from gateway), absent otherwise (received control response / reply / validator)
+    ) -> Option<ReconstructedMessage> {
         let set_id = fragment.id();
         let set_len = fragment.total_fragments();
 
@@ -277,7 +292,7 @@ impl MessageReconstructor {
             .entry(set_id)
             .or_insert_with(|| ReconstructionBuffer::new(set_len));
 
-        buf.insert_fragment(fragment);
+        buf.insert_fragment(fragment, log_recv_nanos);
         if self.is_message_fully_received(set_id) {
             Some(self.reconstruct_message(set_id))
         } else {

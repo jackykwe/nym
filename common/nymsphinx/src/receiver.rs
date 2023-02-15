@@ -157,8 +157,12 @@ impl MessageReceiver {
     pub fn insert_new_fragment(
         &mut self,
         fragment: Fragment,
+        log_recv_nanos: Option<i64>, // present (received message from gateway), absent otherwise (received control response / reply / validator)
     ) -> Result<Option<(NymMessage, Vec<i32>)>, MessageRecoveryError> {
-        if let Some((message, used_sets)) = self.reconstructor.insert_new_fragment(fragment) {
+        if let Some((message, used_sets)) = self
+            .reconstructor
+            .insert_new_fragment(fragment, log_recv_nanos)
+        {
             match PaddedMessage::new_reconstructed(message).remove_padding(self.num_mix_hops) {
                 Ok(message) => Ok(Some((message, used_sets))),
                 Err(err) => Err(MessageRecoveryError::MalformedReconstructedMessage {

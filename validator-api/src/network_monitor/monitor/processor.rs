@@ -88,7 +88,9 @@ impl ReceivedProcessorInner {
             .map_err(|_| ProcessingError::MalformedPacketReceived)?;
         let (recovered, _) = self
             .message_receiver
-            .insert_new_fragment(fragment)
+            .insert_new_fragment(
+                fragment, None, // I'm not logging stuff happening at validators
+            )
             .map_err(|_| ProcessingError::MalformedPacketReceived)?
             .ok_or(ProcessingError::NonTestPacketReceived)?; // if it's a test packet it MUST BE reconstructed with single fragment
         let test_packet = TestPacket::try_from_bytes(&recovered.into_inner_data())
